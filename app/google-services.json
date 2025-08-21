@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "768508664135",
+    "project_id": "animalwatch-17295",
+    "storage_bucket": "animalwatch-17295.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:768508664135:android:dce5944277be672629d462",
+        "android_client_info": {
+          "package_name": "com.veljkotosic.animalwatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJo3vd9U3bBOFbrlQctJkFjqdONLZW5qg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
