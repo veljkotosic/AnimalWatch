@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.animation.ExperimentalAnimationApi
 import com.veljkotosic.animalwatch.data.storage.CloudinaryStorageRepository
 import com.veljkotosic.animalwatch.data.user.repository.FirestoreUserRepository
 import com.veljkotosic.animalwatch.navigation.home.HomeNavHost

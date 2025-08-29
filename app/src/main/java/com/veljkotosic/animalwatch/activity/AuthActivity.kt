@@ -11,7 +11,6 @@ import com.veljkotosic.animalwatch.data.storage.CloudinaryStorageRepository
 import com.veljkotosic.animalwatch.data.user.repository.FirestoreUserRepository
 import com.veljkotosic.animalwatch.navigation.auth.AuthNavHost
 import com.veljkotosic.animalwatch.ui.theme.AnimalWatchTheme
-import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModel
 import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModelFactory
 import com.veljkotosic.animalwatch.viewmodel.auth.LoginViewModel
 import com.veljkotosic.animalwatch.viewmodel.auth.RegistrationViewModel
