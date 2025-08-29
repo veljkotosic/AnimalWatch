@@ -32,27 +32,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import com.veljkotosic.animalwatch.screen.Screens
 import com.veljkotosic.animalwatch.component.Logo
-import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModel
-import com.veljkotosic.animalwatch.viewmodel.user.UserViewModel
+import com.veljkotosic.animalwatch.screen.Screens
+import com.veljkotosic.animalwatch.viewmodel.auth.LoginViewModel
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel
+    loginViewModel: LoginViewModel,
+    onLoginSuccess: () -> Unit
 ) {
-    val loginUiState by authViewModel.loginUiState.collectAsState()
-    val userState by userViewModel.userState.collectAsState()
+    val loginUiState by loginViewModel.loginUiState.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(loginUiState.processing.isSuccess) {
         if (loginUiState.processing.isSuccess) {
-            userViewModel.getUser(authViewModel.getCurrentUserId()!!)
+            onLoginSuccess()
         }
     }
 
@@ -81,7 +78,7 @@ fun LoginScreen(
 
             OutlinedTextField(
                 value = loginUiState.email,
-                onValueChange = { authViewModel.onLoginEmailChanged(it) },
+                onValueChange = { loginViewModel.onEmailChanged(it) },
                 label = { Text("Email") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -95,7 +92,7 @@ fun LoginScreen(
             )
             OutlinedTextField(
                 value = loginUiState.password,
-                onValueChange = { authViewModel.onLoginPasswordChanged(it) },
+                onValueChange = { loginViewModel.onPasswordChanged(it) },
                 label = { Text("Password") },
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -109,22 +106,22 @@ fun LoginScreen(
             Button(
                 onClick = {
                     if (loginUiState.email.isBlank()) {
-                        authViewModel.setLoginError("Email field is empty.")
+                        loginViewModel.setError("Email field is empty.")
                         return@Button
                     }
                     if (loginUiState.password.isBlank()) {
-                        authViewModel.setLoginError("Password field is empty.")
+                        loginViewModel.setError("Password field is empty.")
                         return@Button
                     }
 
                     if (!loginUiState.processing.isLoading) {
-                        authViewModel.login()
+                        loginViewModel.login()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
                 if (loginUiState.processing.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.Gray)
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
                 } else {
                     Text("Login")
                 }

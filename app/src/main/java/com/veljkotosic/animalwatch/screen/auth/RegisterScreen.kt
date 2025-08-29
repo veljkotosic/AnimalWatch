@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,7 +24,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BrowseGallery
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Phone
@@ -46,7 +44,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,19 +63,19 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.veljkotosic.animalwatch.screen.Screens
 import com.veljkotosic.animalwatch.component.Logo
-import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModel
+import com.veljkotosic.animalwatch.screen.Screens
+import com.veljkotosic.animalwatch.viewmodel.auth.RegistrationViewModel
 import com.veljkotosic.animalwatch.viewmodel.user.UserViewModel
 import java.io.File
 
 @Composable
 fun RegisterScreen(
     navController: NavController,
-    authViewModel: AuthViewModel,
+    registrationViewModel: RegistrationViewModel,
     userViewModel: UserViewModel
 ) {
-    val registrationUiState by authViewModel.registrationUiState.collectAsState()
+    val registrationUiState by registrationViewModel.registrationUiState.collectAsState()
 
     var passwordVisible by remember { mutableStateOf(false)}
 
@@ -104,7 +101,7 @@ fun RegisterScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            authViewModel.onAvatarUriChanged(uri)
+            registrationViewModel.onAvatarUriChanged(uri)
         }
     }
 
@@ -113,13 +110,14 @@ fun RegisterScreen(
     ) {
         uri : Uri? ->
         if (uri !== null) {
-            authViewModel.onAvatarUriChanged(uri)
+            registrationViewModel.onAvatarUriChanged(uri)
         }
     }
 
     LaunchedEffect(registrationUiState.processing.isSuccess) {
         if (registrationUiState.processing.isSuccess) {
-            val user = authViewModel.buildUser(registrationUiState)
+            val uid = registrationViewModel.newUserUid
+            val user = registrationViewModel.buildUser(registrationUiState, uid.value!!)
             userViewModel.createUser(user, registrationUiState.avatarUri!!, context.contentResolver)
             navController.navigate(Screens.RegistrationDone.route) {
                 popUpTo(Screens.Register.route) {
@@ -155,7 +153,7 @@ fun RegisterScreen(
 
             OutlinedTextField(
                 value = registrationUiState.email,
-                onValueChange = { authViewModel.onRegistrationEmailChanged(it) },
+                onValueChange = { registrationViewModel.onEmailChanged(it) },
                 label = { Text("Email") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -169,7 +167,7 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = registrationUiState.password,
-                onValueChange = { authViewModel.onRegistrationPasswordChanged(it) },
+                onValueChange = { registrationViewModel.onPasswordChanged(it) },
                 label = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
@@ -193,7 +191,7 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = registrationUiState.confirmPassword,
-                onValueChange = { authViewModel.onRegistrationConfirmPasswordChanged(it) },
+                onValueChange = { registrationViewModel.onConfirmPasswordChanged(it) },
                 label = { Text("Confirm Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
@@ -224,7 +222,7 @@ fun RegisterScreen(
 
             OutlinedTextField(
                 value = registrationUiState.name,
-                onValueChange = { authViewModel.onRegistrationNameChanged(it) },
+                onValueChange = { registrationViewModel.onNameChanged(it) },
                 label = { Text("Name") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -237,7 +235,7 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = registrationUiState.surname,
-                onValueChange = { authViewModel.onRegistrationSurnameChanged(it) },
+                onValueChange = { registrationViewModel.onSurnameChanged(it) },
                 label = { Text("Surname") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -250,7 +248,7 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = registrationUiState.displayName,
-                onValueChange = { authViewModel.onRegistrationDisplayNameChanged(it) },
+                onValueChange = { registrationViewModel.onDisplayNameChanged(it) },
                 label = { Text("Display Name") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
@@ -263,7 +261,7 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = registrationUiState.phoneNumber,
-                onValueChange = { authViewModel.onRegistrationPhoneNumberChanged(it) },
+                onValueChange = { registrationViewModel.onPhoneNumberChanged(it) },
                 label = { Text("Phone") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -340,37 +338,42 @@ fun RegisterScreen(
             Button(
                 onClick = {
                     if (registrationUiState.email.isBlank()) {
-                        authViewModel.setRegistrationError("Email field is empty.")
+                        registrationViewModel.setError("Email field is empty.")
                         return@Button
                     }
                     if (registrationUiState.password.isBlank()) {
-                        authViewModel.setRegistrationError("Password field is empty")
+                        registrationViewModel.setError("Password field is empty")
                         return@Button
                     }
                     if (registrationUiState.confirmPassword.isBlank()) {
-                        authViewModel.setRegistrationError("Repeated password field is empty")
+                        registrationViewModel.setError("Repeated password field is empty")
                         return@Button
                     }
-                    if (authViewModel.passwordsMatch())
+                    if (registrationViewModel.passwordsMatch())
                     {
-                        authViewModel.setRegistrationError("Repeated password does not match the password")
+                        registrationViewModel.setError("Repeated password does not match the password")
                         return@Button
                     }
                     if (registrationUiState.name.isBlank()) {
-                        authViewModel.setRegistrationError("Name field is empty")
+                        registrationViewModel.setError("Name field is empty")
                         return@Button
                     }
                     if (registrationUiState.surname.isBlank()) {
-                        authViewModel.setRegistrationError("Surname field is empty")
+                        registrationViewModel.setError("Surname field is empty")
                         return@Button
                     }
                     if (registrationUiState.phoneNumber.isBlank()) {
-                        authViewModel.setRegistrationError("Phone field is empty")
+                        registrationViewModel.setError("Phone field is empty")
+                        return@Button
+                    }
+                    if (registrationUiState.avatarUri === null)
+                    {
+                        registrationViewModel.setError("Avatar Uri invalid")
                         return@Button
                     }
 
                     if (!registrationUiState.processing.isLoading) {
-                        authViewModel.register()
+                        registrationViewModel.register()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
