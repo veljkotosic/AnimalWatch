@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-
     <application
         android:name=".AnimalWatchApp"
         android:allowBackup="true"
@@ -13,6 +12,22 @@
         android:roundIcon="@drawable/logo"
         android:supportsRtl="true"
         android:theme="@style/Theme.AnimalWatch">
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}" />
+
+        <meta-data
+            android:name="com.veljkotosic.animalwatch.cloudinary.CLOUD_NAME"
+            android:value="${CLOUDINARY_CLOUD_NAME}" />
+
+        <meta-data
+            android:name="com.veljkotosic.animalwatch.cloudinary.AVATAR_UPLOAD_PRESET"
+            android:value="${CLOUDINARY_AVATAR_UPLOAD_PRESET}" />
+
+        <meta-data
+            android:name="com.veljkotosic.animalwatch.cloudinary.MARKER_UPLOAD_PRESET"
+            android:value="${CLOUDINARY_MARKER_UPLOAD_PRESET}" />
 
         <activity
             android:name=".activity.AuthActivity"
