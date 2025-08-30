@@ -118,7 +118,7 @@ fun RegisterScreen(
         if (registrationUiState.processing.isSuccess) {
             val uid = registrationViewModel.newUserUid
             val user = registrationViewModel.buildUser(registrationUiState, uid.value!!)
-            userViewModel.createUser(user, registrationUiState.avatarUri!!, context.contentResolver)
+            userViewModel.createUser(user, registrationUiState.avatarUri!!, context)
             navController.navigate(Screens.RegistrationDone.route) {
                 popUpTo(Screens.Register.route) {
                     inclusive = true

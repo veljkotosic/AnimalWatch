@@ -1,6 +1,7 @@
 package com.veljkotosic.animalwatch.viewmodel.user
 
 import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -20,10 +21,10 @@ class UserViewModel(
     private val _userState = MutableStateFlow<User?>(null)
     val userState: StateFlow<User?> = _userState.asStateFlow()
 
-    fun createUser(user: User, avatarUri: Uri, contentResolver: ContentResolver) =
+    fun createUser(user: User, avatarUri: Uri, context: Context) =
         viewModelScope.launch {
             val publicAvatarUri =
-                storageRepository.uploadImage(user.uid, avatarUri, contentResolver)
+                storageRepository.uploadAvatarImage(user.uid, avatarUri, context)
             userRepository.createUser(user, publicAvatarUri)
             _userState.value = user
         }
