@@ -1,4 +1,4 @@
-package com.veljkotosic.animalwatch.navigation.auth
+package com.veljkotosic.animalwatch.navigation.home
 
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.tween
@@ -7,17 +7,14 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.veljkotosic.animalwatch.screen.auth.RegisterScreen
-import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModel
-import com.veljkotosic.animalwatch.viewmodel.user.UserViewModel
+import com.veljkotosic.animalwatch.screen.home.LeaderboardScreen
 
-fun NavGraphBuilder.RegisterNavigation(
+fun NavGraphBuilder.leaderboardNavigation (
     navController: NavController,
     route: String,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel,
     duration: Int,
-    easing: Easing){
+    easing: Easing
+) {
     composable(
         route,
         enterTransition = {
@@ -43,6 +40,6 @@ fun NavGraphBuilder.RegisterNavigation(
             )
         }
     ) {
-        RegisterScreen(navController, authViewModel = authViewModel, userViewModel = userViewModel)
+        LeaderboardScreen(navController)
     }
 }

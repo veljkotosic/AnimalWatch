@@ -9,11 +9,12 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.veljkotosic.animalwatch.screen.auth.RegistrationDoneScreen
 
-fun NavGraphBuilder.RegistrationDoneNavigation(
+fun NavGraphBuilder.registrationDoneNavigation(
     navController: NavController,
     route: String,
     duration: Int,
-    easing: Easing){
+    easing: Easing
+) {
     composable(
         route,
         enterTransition = {

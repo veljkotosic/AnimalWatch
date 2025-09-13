@@ -8,16 +8,16 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.veljkotosic.animalwatch.screen.auth.LoginScreen
-import com.veljkotosic.animalwatch.viewmodel.auth.AuthViewModel
-import com.veljkotosic.animalwatch.viewmodel.user.UserViewModel
+import com.veljkotosic.animalwatch.viewmodel.auth.LoginViewModel
 
-fun NavGraphBuilder.LoginNavigation(
+fun NavGraphBuilder.loginNavigation(
     navController: NavController,
     route: String,
-    authViewModel: AuthViewModel,
-    userViewModel: UserViewModel,
+    loginViewModel: LoginViewModel,
+    onLoginSuccess: () -> Unit,
     duration: Int,
-    easing: Easing){
+    easing: Easing
+) {
     composable(
         route,
         enterTransition = {
@@ -43,6 +43,9 @@ fun NavGraphBuilder.LoginNavigation(
             )
         }
     ) {
-        LoginScreen(navController, authViewModel = authViewModel, userViewModel = userViewModel)
+        LoginScreen(
+            navController,
+            loginViewModel = loginViewModel,
+            onLoginSuccess = onLoginSuccess)
     }
 }

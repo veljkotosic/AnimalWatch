@@ -1,4 +1,4 @@
-package com.veljkotosic.animalwatch.component
+package com.veljkotosic.animalwatch.composable.logo
 
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
