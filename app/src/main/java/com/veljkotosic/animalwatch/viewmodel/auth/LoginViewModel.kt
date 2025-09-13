@@ -5,7 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.veljkotosic.animalwatch.data.auth.repository.AuthRepository
 import com.veljkotosic.animalwatch.log.Tags
-import com.veljkotosic.animalwatch.viewmodel.auth.uistate.LoginUiState
+import com.veljkotosic.animalwatch.uistate.auth.LoginUiState
+import com.veljkotosic.animalwatch.uistate.processing.ProcessingUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,8 +14,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val authRepository: AuthRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
+    private val _processingUiState = MutableStateFlow(ProcessingUiState())
+    val processingUiState: StateFlow<ProcessingUiState> = _processingUiState.asStateFlow()
+
     private val _loginUiState = MutableStateFlow(LoginUiState())
     val loginUiState: StateFlow<LoginUiState> = _loginUiState.asStateFlow()
 
@@ -27,27 +31,22 @@ class LoginViewModel(
     }
 
     fun setError(newErrorMessage: String?) {
-        _loginUiState.update { it.copy(processing = it.processing.copy(errorMessage = newErrorMessage)) }
+        _processingUiState.update { it.copy(errorMessage = newErrorMessage) }
     }
 
     fun login() = viewModelScope.launch {
-        _loginUiState.update { it.copy(processing = it.processing.copy(isLoading = true)) }
+        _processingUiState.update { it.copy(isLoading = true) }
         try {
             val uid = authRepository.login(
                 _loginUiState.value.email,
                 _loginUiState.value.password
             )
-            _loginUiState.update {
-                it.copy(processing = it.processing.copy(isSuccess = true),
-                )
-            }
+            _processingUiState.update { it.copy(isSuccess = true) }
         } catch (e: Exception) {
-            _loginUiState.update {
-                it.copy(processing = it.processing.copy(isSuccess = false, errorMessage = e.message))
-            }
+            _processingUiState.update { it.copy(isSuccess = false, errorMessage = e.message) }
             Log.e(Tags.AUTH_LOG_TAG, "Login failed.")
         } finally {
-            _loginUiState.update { it.copy(processing = it.processing.copy(isLoading = false)) }
+            _processingUiState.update { it.copy(isLoading = false) }
         }
     }
 }

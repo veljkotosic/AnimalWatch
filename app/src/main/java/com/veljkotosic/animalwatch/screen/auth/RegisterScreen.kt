@@ -42,9 +42,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,21 +62,28 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.veljkotosic.animalwatch.component.Logo
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.veljkotosic.animalwatch.composable.logo.Logo
 import com.veljkotosic.animalwatch.screen.Screens
 import com.veljkotosic.animalwatch.viewmodel.auth.RegistrationViewModel
 import com.veljkotosic.animalwatch.viewmodel.user.UserViewModel
+import kotlinx.coroutines.launch
 import java.io.File
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun RegisterScreen(
     navController: NavController,
     registrationViewModel: RegistrationViewModel,
     userViewModel: UserViewModel
 ) {
-    val registrationUiState by registrationViewModel.registrationUiState.collectAsState()
+    val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
+    val cameraPermissionCoroutineScope = rememberCoroutineScope()
 
-    var passwordVisible by remember { mutableStateOf(false)}
+    val processingUiState by registrationViewModel.processingUiState.collectAsState()
+    val registrationUiState by registrationViewModel.registrationUiState.collectAsState()
 
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -110,12 +116,13 @@ fun RegisterScreen(
     ) {
         uri : Uri? ->
         if (uri !== null) {
-            registrationViewModel.onAvatarUriChanged(uri)
+            val newUri = uri.buildUpon().appendQueryParameter("ts", System.currentTimeMillis().toString()).build()
+            registrationViewModel.onAvatarUriChanged(newUri)
         }
     }
 
-    LaunchedEffect(registrationUiState.processing.isSuccess) {
-        if (registrationUiState.processing.isSuccess) {
+    LaunchedEffect(processingUiState.isSuccess) {
+        if (processingUiState.isSuccess) {
             val uid = registrationViewModel.newUserUid
             val user = registrationViewModel.buildUser(registrationUiState, uid.value!!)
             userViewModel.createUser(user, registrationUiState.avatarUri!!, context)
@@ -124,6 +131,14 @@ fun RegisterScreen(
                     inclusive = true
                 }
             }
+        }
+    }
+
+    // Pokretanje kamere nakon davanja dozvole, a samo na pritisak dugmeta za kameru
+    LaunchedEffect(cameraPermission.status, registrationUiState.userRequestedCamera) {
+        if (cameraPermission.status.isGranted && registrationUiState.userRequestedCamera) {
+            registrationViewModel.resetCameraRequest()
+            cameraLauncher.launch(uri)
         }
     }
 
@@ -169,7 +184,7 @@ fun RegisterScreen(
                 value = registrationUiState.password,
                 onValueChange = { registrationViewModel.onPasswordChanged(it) },
                 label = { Text("Password") },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (registrationUiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next
@@ -179,11 +194,13 @@ fun RegisterScreen(
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 trailingIcon = {
-                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (passwordVisible) "Hide password" else "Show password"
+                    val image = if (registrationUiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val description = if (registrationUiState.passwordVisible) "Hide password" else "Show password"
 
                     IconButton(
-                        onClick = { passwordVisible = !passwordVisible }
+                        onClick = {
+                            registrationViewModel.togglePasswordVisibility()
+                        }
                     ) {
                         Icon(imageVector = image, contentDescription = description)
                     }
@@ -193,7 +210,7 @@ fun RegisterScreen(
                 value = registrationUiState.confirmPassword,
                 onValueChange = { registrationViewModel.onConfirmPasswordChanged(it) },
                 label = { Text("Confirm Password") },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                visualTransformation = if (registrationUiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     imeAction = ImeAction.Next
@@ -203,11 +220,13 @@ fun RegisterScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 trailingIcon = {
-                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                    val description = if (passwordVisible) "Hide password" else "Show password"
+                    val image = if (registrationUiState.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    val description = if (registrationUiState.passwordVisible) "Hide password" else "Show password"
 
                     IconButton(
-                        onClick = { passwordVisible = !passwordVisible }
+                        onClick = {
+                            registrationViewModel.togglePasswordVisibility()
+                        }
                     ) {
                         Icon(imageVector = image, contentDescription = description)
                     }
@@ -298,7 +317,14 @@ fun RegisterScreen(
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = {
-                            cameraLauncher.launch(uri)
+                            if (cameraPermission.status.isGranted) {
+                                cameraLauncher.launch(uri)
+                            } else {
+                                cameraPermissionCoroutineScope.launch {
+                                    registrationViewModel.onCameraRequested()
+                                    cameraPermission.launchPermissionRequest()
+                                }
+                            }
                         }
                     ) {
                         Icon(imageVector = Icons.Filled.CameraAlt, contentDescription = "Take picture")
@@ -331,7 +357,7 @@ fun RegisterScreen(
                 }
             }
 
-            registrationUiState.processing.errorMessage?.let {
+            processingUiState.errorMessage?.let {
                 Text(it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
             }
 
@@ -372,13 +398,13 @@ fun RegisterScreen(
                         return@Button
                     }
 
-                    if (!registrationUiState.processing.isLoading) {
+                    if (!processingUiState.isLoading) {
                         registrationViewModel.register()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
-                if (registrationUiState.processing.isLoading) {
+                if (processingUiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
                 } else {
                     Text("Register")
