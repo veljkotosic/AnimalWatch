@@ -1,6 +1,5 @@
 package com.veljkotosic.animalwatch.data.user.repository
 
-import android.net.Uri
 import com.veljkotosic.animalwatch.data.user.entity.User
 
 interface UserRepository {
@@ -8,4 +7,5 @@ interface UserRepository {
     suspend fun getUser(uid: String) : User?
     suspend fun updateUser(user: User)
     suspend fun deleteUser(uid: String)
+    suspend fun updateLastKnownLocation(uid: String, latitude: Double, longitude: Double)
 }
