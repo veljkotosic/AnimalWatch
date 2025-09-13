@@ -36,7 +36,6 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.firestore.GeoPoint
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
@@ -47,12 +46,6 @@ import com.veljkotosic.animalwatch.composable.marker.AnimalWatchMarker
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerCreator
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerPreview
 import com.veljkotosic.animalwatch.composable.table.WatchMarkerTable
-import com.veljkotosic.animalwatch.data.marker.entity.WatchMarker
-import com.veljkotosic.animalwatch.data.marker.entity.WatchMarkerSeverity
-import com.veljkotosic.animalwatch.data.marker.entity.tag.WatchMarkerAnimalBehaviourTags
-import com.veljkotosic.animalwatch.data.marker.entity.tag.WatchMarkerAnimalStateTags
-import com.veljkotosic.animalwatch.data.marker.entity.tag.WatchMarkerAnimalTags
-import com.veljkotosic.animalwatch.data.marker.entity.tag.WatchMarkerAnimalTypeTags
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 
 @OptIn(ExperimentalPermissionsApi::class)
