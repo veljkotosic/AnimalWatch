@@ -37,6 +37,7 @@ fun AuthNavHost(
 
     var user = auth.currentUser
 
+    // Provera kesiranog user-a
     LaunchedEffect(Unit) {
         if (!signedOut)
         {
