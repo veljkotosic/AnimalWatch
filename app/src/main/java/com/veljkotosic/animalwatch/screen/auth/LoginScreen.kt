@@ -32,7 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.veljkotosic.animalwatch.component.Logo
+import com.veljkotosic.animalwatch.composable.logo.Logo
 import com.veljkotosic.animalwatch.screen.Screens
 import com.veljkotosic.animalwatch.viewmodel.auth.LoginViewModel
 
@@ -42,13 +42,14 @@ fun LoginScreen(
     loginViewModel: LoginViewModel,
     onLoginSuccess: () -> Unit
 ) {
+    val processingUiState by loginViewModel.processingUiState.collectAsState()
     val loginUiState by loginViewModel.loginUiState.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    LaunchedEffect(loginUiState.processing.isSuccess) {
-        if (loginUiState.processing.isSuccess) {
+    LaunchedEffect(processingUiState.isSuccess) {
+        if (processingUiState.isSuccess) {
             onLoginSuccess()
         }
     }
@@ -99,7 +100,7 @@ fun LoginScreen(
                 singleLine = true
             )
 
-            loginUiState.processing.errorMessage?.let {
+            processingUiState.errorMessage?.let {
                 Text(it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
             }
 
@@ -114,13 +115,13 @@ fun LoginScreen(
                         return@Button
                     }
 
-                    if (!loginUiState.processing.isLoading) {
+                    if (!processingUiState.isLoading) {
                         loginViewModel.login()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
-                if (loginUiState.processing.isLoading) {
+                if (processingUiState.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
                 } else {
                     Text("Login")

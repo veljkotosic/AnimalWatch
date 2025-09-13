@@ -1,4 +1,4 @@
-package com.veljkotosic.animalwatch.viewmodel.auth.uistate
+package com.veljkotosic.animalwatch.uistate.auth
 
 import android.net.Uri
 
@@ -11,5 +11,7 @@ data class RegistrationUiState(
     val displayName: String = "",
     val phoneNumber: String = "",
     val avatarUri: Uri? = null,
-    val processing: AuthUiState = AuthUiState()
+
+    val passwordVisible: Boolean = false,
+    val userRequestedCamera: Boolean = false
 )

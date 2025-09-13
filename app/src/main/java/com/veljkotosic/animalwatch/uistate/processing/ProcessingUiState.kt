@@ -1,6 +1,6 @@
-package com.veljkotosic.animalwatch.viewmodel.auth.uistate
+package com.veljkotosic.animalwatch.uistate.processing
 
-data class AuthUiState(
+data class ProcessingUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null
