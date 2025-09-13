@@ -1,10 +1,8 @@
 package com.veljkotosic.animalwatch.viewmodel.user
 
-import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.veljkotosic.animalwatch.data.storage.StorageRepository
 import com.veljkotosic.animalwatch.data.user.entity.User
@@ -28,10 +26,6 @@ class UserViewModel(
             userRepository.createUser(user, publicAvatarUri)
             _userState.value = user
         }
-
-    fun getUser(uid: String) = viewModelScope.launch {
-        _userState.value = userRepository.getUser(uid)
-    }
 
     fun updateUser(user: User) = viewModelScope.launch {
         userRepository.updateUser(user)
