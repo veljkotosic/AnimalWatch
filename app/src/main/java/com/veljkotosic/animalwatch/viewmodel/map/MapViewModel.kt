@@ -70,6 +70,9 @@ class MapViewModel (
     private val _newMarkerUiState = MutableStateFlow(WatchMarkerUiState())
     val newMarkerUiState: StateFlow<WatchMarkerUiState> = _newMarkerUiState.asStateFlow()
 
+    private val _updateMarkerUiState = MutableStateFlow(WatchMarkerUiState())
+    val updateMarkerUiState: StateFlow<WatchMarkerUiState> = _updateMarkerUiState.asStateFlow()
+
     private val _loadedMarkers = MutableStateFlow<List<WatchMarker>>(emptyList())
     val loadedMarkers: StateFlow<List<WatchMarker>> = _loadedMarkers.asStateFlow()
 
@@ -79,36 +82,65 @@ class MapViewModel (
     private val _selectedMarker = MutableStateFlow<WatchMarker?>(null)
     val selectedMarker: StateFlow<WatchMarker?> = _selectedMarker.asStateFlow()
 
+    private val _baseMarker = MutableStateFlow<WatchMarker?>(null)
+    val baseMarker: StateFlow<WatchMarker?> = _baseMarker.asStateFlow()
+
     private val _currentLocation = MutableStateFlow<LatLng?>(null)
     val currentLocation: StateFlow<LatLng?> = _currentLocation.asStateFlow()
 
     private val _userState = MutableStateFlow<User?>(null)
     val userState: StateFlow<User?> = _userState.asStateFlow()
 
-    fun onTitleChanged(newTitle: String) {
+    fun onNewMarkerTitleChanged(newTitle: String) {
         _newMarkerUiState.update { it.copy(title = newTitle) }
     }
 
-    fun onDescriptionChanged(newDescription: String) {
+    fun onNewMarkerDescriptionChanged(newDescription: String) {
         _newMarkerUiState.update { it.copy(description = newDescription) }
     }
 
-    fun onSeverityChanged(newSeverity: WatchMarkerSeverity) {
+    fun onNewMarkerSeverityChanged(newSeverity: WatchMarkerSeverity) {
         _newMarkerUiState.update { it.copy(severity = newSeverity) }
     }
 
-    fun onImageUriChanged(newImageUri: Uri?) {
+    fun onNewMarkerImageUriChanged(newImageUri: Uri?) {
         _newMarkerUiState.update { it.copy(imageUri = newImageUri) }
     }
 
-    fun onTagAdded(tag: String) {
+    fun onNewMarkerTagAdded(tag: String) {
         if (!_newMarkerUiState.value.tags.contains(tag)) {
             _newMarkerUiState.update { it.copy(tags = it.tags + tag) }
         }
     }
 
-    fun onTagRemoved(tag: String) {
+    fun onNewMarkerTagRemoved(tag: String) {
         _newMarkerUiState.update { it.copy(tags = it.tags - tag) }
+    }
+
+    fun onUpdateMarkerTitleChanged(newTitle: String) {
+        _updateMarkerUiState.update { it.copy(title = newTitle) }
+    }
+
+    fun onUpdateMarkerDescriptionChanged(newDescription: String) {
+        _updateMarkerUiState.update { it.copy(description = newDescription) }
+    }
+
+    fun onUpdateMarkerSeverityChanged(newSeverity: WatchMarkerSeverity) {
+        _updateMarkerUiState.update { it.copy(severity = newSeverity) }
+    }
+
+    fun onUpdateMarkerImageUriChanged(newImageUri: Uri?) {
+        _updateMarkerUiState.update { it.copy(imageUri = newImageUri) }
+    }
+
+    fun onUpdateMarkerTagAdded(tag: String) {
+        if (!_updateMarkerUiState.value.tags.contains(tag)) {
+            _updateMarkerUiState.update { it.copy(tags = it.tags + tag) }
+        }
+    }
+
+    fun onUpdateMarkerTagRemoved(tag: String) {
+        _updateMarkerUiState.update { it.copy(tags = it.tags - tag) }
     }
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
@@ -142,12 +174,10 @@ class MapViewModel (
     }
 
     fun selectMarker(newMarker: WatchMarker) {
-        _mapUiState.update { it.copy(markerPreviewOpen = true) }
         _selectedMarker.value = newMarker
     }
 
     fun deselectMarker() {
-        _mapUiState.update { it.copy(markerPreviewOpen = false) }
         _selectedMarker.value = null
     }
 
@@ -157,6 +187,15 @@ class MapViewModel (
 
     fun closeMarkerCreator() {
         _mapUiState.update { it.copy(markerCreatorOpen = false) }
+    }
+
+    fun openMarkerUpdater(baseMarker: WatchMarker) {
+        _updateMarkerUiState.update { it.copy(title = baseMarker.title, severity = baseMarker.severity) }
+        setBaseMarker(baseMarker)
+    }
+
+    fun closeMarkerUpdater() {
+        resetBaseMarker()
     }
 
     fun promptMarkerDelete() {
@@ -179,8 +218,22 @@ class MapViewModel (
         _processingUiState.update { it.copy(errorMessage = null) }
     }
 
-    fun resetMarkerUiState() {
+    fun resetNewMarkerUiState() {
         _newMarkerUiState.value = WatchMarkerUiState()
+    }
+
+    fun resetUpdateMarkerUiState() {
+        val title = _updateMarkerUiState.value.title
+        _updateMarkerUiState.value = WatchMarkerUiState()
+        _updateMarkerUiState.update { it.copy(title = title) }
+    }
+
+    fun setBaseMarker(marker: WatchMarker) {
+        _baseMarker.value = marker
+    }
+
+    fun resetBaseMarker() {
+        _baseMarker.value = null
     }
 
     fun clearFilters() {
@@ -255,7 +308,7 @@ class MapViewModel (
         }
     }
 
-    private fun isDataValid(): Boolean {
+    private fun isNewMarkerDataValid(): Boolean {
         if (_newMarkerUiState.value.title.isBlank()) {
             _processingUiState.update { it.copy(errorMessage = "Title cannot be empty.") }
             return false
@@ -276,8 +329,29 @@ class MapViewModel (
         return true
     }
 
+    private fun isUpdateMarkerDataValid(): Boolean {
+        if (_updateMarkerUiState.value.title.isBlank()) {
+            _processingUiState.update { it.copy(errorMessage = "Title cannot be empty.") }
+            return false
+        }
+        if (_updateMarkerUiState.value.description.isBlank()) {
+            _processingUiState.update { it.copy(errorMessage = "Description cannot be empty.") }
+            return false
+        }
+        if (_updateMarkerUiState.value.severity == WatchMarkerSeverity.Undefined) {
+            _processingUiState.update { it.copy(errorMessage = "Please select a marker severity.") }
+            return false
+        }
+        if (_updateMarkerUiState.value.imageUri == null) {
+            _processingUiState.update { it.copy(errorMessage = "Please take a picture.") }
+            return false
+        }
+
+        return true
+    }
+
     fun createMarker(context: Context, cameraPositionState: CameraPositionState) = viewModelScope.launch {
-        if (isDataValid()) {
+        if (isNewMarkerDataValid()) {
             clearError()
             _processingUiState.update { it.copy(isLoading = true) }
             try {
@@ -304,14 +378,15 @@ class MapViewModel (
                     positionHash = GeoFireUtils.getGeoHashForLocation(newMarker.position.toGeoLocation())
                 )
 
+                markerRepository.createMarker(newMarkerWithImage)
+
                 _loadedMarkers.update { it + newMarkerWithImage }
 
                 moveCameraToMarker(newMarker, cameraPositionState)
 
-                markerRepository.createMarker(newMarkerWithImage)
                 _processingUiState.update { it.copy(isSuccess = true) }
                 closeMarkerCreator()
-                resetMarkerUiState()
+                resetNewMarkerUiState()
             } catch (e: Exception) {
                 _processingUiState.update { it.copy(isSuccess = false, errorMessage = e.message) }
             } finally {
@@ -343,7 +418,47 @@ class MapViewModel (
     }
 
     fun updateMarker(context: Context, oldMarker: WatchMarker) = viewModelScope.launch {
+        if (isUpdateMarkerDataValid()) {
+            _processingUiState.update { it.copy(isLoading = true) }
+            try {
 
+                val updatedMarker = WatchMarker(
+                    ownerId = authRepository.getCurrentUserId()!!,
+                    ownerUserName = _userState.value?.displayName ?: "",
+                    title = oldMarker.title,
+                    description = _updateMarkerUiState.value.description,
+                    tags = _updateMarkerUiState.value.tags,
+                    severity = _updateMarkerUiState.value.severity,
+                    position = oldMarker.position,
+                    positionHash = oldMarker.positionHash,
+                    positionInThread = oldMarker.positionInThread + 1,
+                    baseMarkerId = oldMarker.id,
+                )
+
+                val imageUrl = storageRepository.uploadMarkerImage(
+                    updatedMarker.id,
+                    _updateMarkerUiState.value.imageUri!!,
+                    context
+                )
+
+                val updatedMarkerWithImage = updatedMarker.copy(
+                    imageUri = imageUrl,
+                    expiresOn = updatedMarker.createdOn.addDays(7),
+                )
+
+                markerRepository.updateMarker(updatedMarkerWithImage, oldMarker)
+
+                _loadedMarkers.update { it - oldMarker + updatedMarkerWithImage }
+                _processingUiState.update { it.copy(isSuccess = true) }
+
+                closeMarkerUpdater()
+                resetUpdateMarkerUiState()
+            } catch (e: Exception) {
+                _processingUiState.update { it.copy(isSuccess = false, errorMessage = e.message) }
+            } finally {
+                _processingUiState.update { it.copy(isLoading = false) }
+            }
+        }
     }
 
     private fun getMarkerLocationsInArea(center: LatLng) {
@@ -375,7 +490,8 @@ class MapViewModel (
                 loaded = markerRepository.getMarker(baseMarkerId)
                 _loadedMarkers.update { it + loaded }
             }
-            _selectedMarker.value = loaded
+            deselectMarker()
+            selectMarker(loaded)
 
             _processingUiState.update { it.copy(isSuccess = true) }
         } catch (e: Exception) {
