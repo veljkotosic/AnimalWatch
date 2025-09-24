@@ -8,9 +8,11 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.veljkotosic.animalwatch.screen.home.ProfileScreen
+import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 
 fun NavGraphBuilder.profileNavigation (
     navController: NavController,
+    profileViewModel: ProfileViewModel,
     route: String,
     onSignOut: () -> Unit,
     duration: Int,
@@ -41,6 +43,6 @@ fun NavGraphBuilder.profileNavigation (
             )
         }
     ) {
-        ProfileScreen(navController, onSignOut)
+        ProfileScreen(navController, profileViewModel, onSignOut)
     }
 }

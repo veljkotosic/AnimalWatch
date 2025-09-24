@@ -60,14 +60,11 @@ class AuthActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val signedOut = intent.getBooleanExtra("signedOut", false)
-
         enableEdgeToEdge()
 
         setContent {
             AnimalWatchTheme {
                 AuthNavHost(
-                    signedOut = signedOut,
                     loginViewModel = loginViewModel,
                     registrationViewModel = registrationViewModel,
                     userViewModel = userViewModel,

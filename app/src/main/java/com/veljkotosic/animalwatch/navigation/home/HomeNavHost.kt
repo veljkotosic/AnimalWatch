@@ -32,11 +32,13 @@ import com.veljkotosic.animalwatch.ui.theme.Background
 import com.veljkotosic.animalwatch.ui.theme.Primary
 import com.veljkotosic.animalwatch.ui.theme.Secondary
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
+import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun HomeNavHost(
     mapViewModel: MapViewModel,
+    profileViewModel: ProfileViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -107,7 +109,7 @@ fun HomeNavHost(
             startDestination = startDestination,
             modifier = Modifier.padding(paddingValues)
             ) {
-                profileNavigation(navController, Screens.Profile.route, onSignOut, 600, FastOutSlowInEasing)
+                profileNavigation(navController, profileViewModel, Screens.Profile.route, onSignOut, 600, FastOutSlowInEasing)
                 mapNavigation(navController, mapViewModel, Screens.Map.route, 600, FastOutSlowInEasing)
                 leaderboardNavigation(navController, Screens.Leaderboard.route, 600, FastOutSlowInEasing)
             }
