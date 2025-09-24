@@ -24,7 +24,6 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun AuthNavHost(
-    signedOut: Boolean,
     loginViewModel: LoginViewModel,
     registrationViewModel: RegistrationViewModel,
     userViewModel: UserViewModel,
@@ -39,17 +38,14 @@ fun AuthNavHost(
 
     // Provera kesiranog user-a
     LaunchedEffect(Unit) {
-        if (!signedOut)
-        {
-            if (user != null) {
-                try {
-                    user.reload().await()
-                    if (Firebase.auth.currentUser != null) {
-                        onLoginSuccess()
-                    }
-                } catch (e: Exception) {
-                    Log.e(Tags.AUTH_LOG_TAG, "Cannot find cached user.")
+        if (user != null) {
+            try {
+                user.reload().await()
+                if (Firebase.auth.currentUser != null) {
+                    onLoginSuccess()
                 }
+            } catch (e: Exception) {
+                Log.e(Tags.AUTH_LOG_TAG, "Cannot find cached user.")
             }
         }
     }

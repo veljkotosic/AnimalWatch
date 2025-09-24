@@ -14,10 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.veljkotosic.animalwatch.screen.Screens
+import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 
 @Composable
 fun ProfileScreen(
     navController: NavController,
+    profileViewModel: ProfileViewModel,
     onSignOut: () -> Unit
 ) {
     Column(
@@ -39,7 +41,7 @@ fun ProfileScreen(
 
         TextButton(
             onClick = {
-                //TODO: Actual signOut via authRepository
+                profileViewModel.signOut()
                 onSignOut()
             }
         ) {

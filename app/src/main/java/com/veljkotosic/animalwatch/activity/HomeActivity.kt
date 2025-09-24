@@ -33,6 +33,8 @@ import com.veljkotosic.animalwatch.utility.service.isInternetConnectionEnabled
 import com.veljkotosic.animalwatch.utility.service.isLocationEnabled
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModelFactory
+import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
+import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModelFactory
 import kotlin.system.exitProcess
 
 class HomeActivity : ComponentActivity() {
@@ -67,6 +69,10 @@ class HomeActivity : ComponentActivity() {
             CloudinaryStorageRepository(),
             LocationServices.getFusedLocationProviderClient(this)
         )
+    }
+
+    private val profileViewModel: ProfileViewModel by viewModels {
+        ProfileViewModelFactory(FireBaseAuthRepository())
     }
 
     private fun showExitDialog(message: String) {
@@ -126,9 +132,9 @@ class HomeActivity : ComponentActivity() {
             AnimalWatchTheme {
                 HomeNavHost(
                     mapViewModel = mapViewModel,
+                    profileViewModel = profileViewModel,
                     onSignOut = {
                         val intent = Intent(this, AuthActivity::class.java)
-                        intent.putExtra("signedOut", true)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
                         finish()
