@@ -64,17 +64,18 @@ fun MapScreen(
     val filteredMarkers by mapViewModel.filteredMarkers.collectAsState()
     val filterUiState by mapViewModel.filterUiState.collectAsState()
 
-    val srbija = LatLng(44.226737, 20.7953)
     val cameraPositionState = rememberCameraPositionState {
-        position = if (currentLocation == null) {
-            CameraPosition.fromLatLngZoom(srbija, 7f)
-        } else {
-            CameraPosition.fromLatLngZoom(currentLocation!!, 15f)
-        }
+        position = CameraPosition.fromLatLngZoom(mapUiState.defaultLocation, 7f)
     }
     var uiSettings by remember { mutableStateOf(MapUiSettings()) }
     var properties by remember {
         mutableStateOf(MapProperties(mapType = MapType.NORMAL))
+    }
+
+    LaunchedEffect(mapUiState.userLoaded) {
+        if (mapUiState.userLoaded) {
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation!!, 15f)
+        }
     }
 
     //Dozvola za lokaciju
