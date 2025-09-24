@@ -9,7 +9,6 @@ data class MapUiState(
     val markerTableOpen: Boolean = false,
     val filtersOpen: Boolean = false,
     val searchingMarkers: Boolean = false,
-    val markerPreviewOpen: Boolean = false,
     val markerCreatorOpen: Boolean = false,
     val markerSearchOpen: Boolean = false,
     val searchRadiusMeters: Double = 3500.0,
