@@ -415,6 +415,7 @@ class MapViewModel (
                 _userState.value = userRepository.getUser(uid)
 
                 _currentLocation.value = _userState.value?.lastKnownLocation?.toLatLng()
+                _mapUiState.update { it.copy(userLoaded = true) }
             }
         }
     }
@@ -461,7 +462,7 @@ class MapViewModel (
 
     @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
     fun startLocationUpdates() {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000).build()
+        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 60000).build()
 
         fusedLocationClient.requestLocationUpdates(
             request,

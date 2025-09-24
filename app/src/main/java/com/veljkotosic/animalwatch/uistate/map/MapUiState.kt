@@ -1,6 +1,10 @@
 package com.veljkotosic.animalwatch.uistate.map
 
+import com.google.android.gms.maps.model.LatLng
+
 data class MapUiState(
+    val userLoaded: Boolean = false,
+    val defaultLocation: LatLng = LatLng(44.226737, 20.7953),
     val creatingMarker: Boolean = false,
     val markerTableOpen: Boolean = false,
     val filtersOpen: Boolean = false,
