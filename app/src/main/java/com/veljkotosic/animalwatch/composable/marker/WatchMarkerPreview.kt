@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -146,13 +147,39 @@ fun WatchMarkerPreview(
                 color = Color.LightGray
             )
 
-            if (mapViewModel.ownsMarker()) {
-                Button(
-                    onClick = {
-                        mapViewModel.promptMarkerDelete()
+            Row(
+                verticalAlignment = Alignment.Top,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (!watchMarker.hasUpdates) {
+                    if (mapViewModel.ownsMarker()) {
+                        Button(
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                mapViewModel.promptMarkerDelete()
+                            }
+                        ) {
+                            Text("Delete marker")
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                mapViewModel.openMarkerUpdater(watchMarker)
+                            }
+                        ) {
+                            Text("Update marker")
+                        }
                     }
-                ) {
-                    Text("Delete marker")
+                }
+
+                watchMarker.baseMarkerId?.let {
+                    TextButton(
+                        onClick = {
+                            mapViewModel.getBaseMarker(watchMarker.baseMarkerId)
+                        }
+                    ) {
+                        Text("See original")
+                    }
                 }
             }
 
