@@ -21,17 +21,40 @@ class FirestoreWatchMarkerRepository(
     private val stats = firestore.collection("stats")
 
     override suspend fun createMarker(marker: WatchMarker) {
-        markers.document(marker.id).set(marker).await()
+        markers.firestore.runTransaction { transaction ->
+            markers.document(marker.id).set(marker)
 
-        stats.document(marker.ownerId).update("markersCreatedCount", FieldValue.increment(1)).await()
+            stats.document(marker.ownerId).update("markersCreatedCount", FieldValue.increment(1))
+        }.await()
     }
 
     override suspend fun removeMarker(marker: WatchMarker) {
-        markers.document(marker.id)
-            .update(mapOf(
-                "state" to WatchMarkerState.Removed,
-                "removedOn" to Timestamp.now()
-            ))
+        markers.firestore.runTransaction { transaction ->
+            markers.document(marker.id)
+                .update(mapOf(
+                    "state" to WatchMarkerState.Removed,
+                    "removedOn" to Timestamp.now()
+                ))
+
+            if (marker.baseMarkerId != null) {
+                markers.document(marker.baseMarkerId)
+                    .update(mapOf(
+                        "hasUpdates" to false,
+                        "state" to WatchMarkerState.Active,
+                        "updatedOn" to null
+                    ))
+
+                stats.document(marker.ownerId)
+                    .update(mapOf(
+                        "markersUpdatedCount" to FieldValue.increment(-1)
+                    ))
+            } else {
+                stats.document(marker.ownerId)
+                    .update(mapOf(
+                        "markersCreatedCount" to FieldValue.increment(-1)
+                    ))
+            }
+        }.await()
     }
 
     override suspend fun editMarker(marker: WatchMarker) {
@@ -46,16 +69,19 @@ class FirestoreWatchMarkerRepository(
     }
 
     override suspend fun updateMarker(newMarker: WatchMarker, originalMarker: WatchMarker) {
-        markers.document(originalMarker.id)
-            .update(mapOf(
-                "state" to WatchMarkerState.Updated,
-                "updatedOn" to Timestamp.now()
-            ))
-            .await()
-        val newMarkerWithBase = newMarker.copy(baseMarkerId = originalMarker.id)
-        markers.document(newMarker.id).set(newMarkerWithBase).await()
+        markers.firestore.runTransaction { transaction ->
+            markers.document(originalMarker.id)
+                .update(mapOf(
+                    "hasUpdates" to true,
+                    "state" to WatchMarkerState.Updated,
+                    "updatedOn" to Timestamp.now()
+                ))
 
-        stats.document(newMarker.ownerId).update("markersUpdatedCount", FieldValue.increment(1)).await()
+            val newMarkerWithBase = newMarker.copy(baseMarkerId = originalMarker.id)
+            markers.document(newMarker.id).set(newMarkerWithBase)
+
+            stats.document(newMarker.ownerId).update("markersUpdatedCount", FieldValue.increment(1))
+        }.await()
     }
 
     override fun getMarkerLocationsInArea(centerLatitude: Double, centerLongitude: Double, radiusMeters: Double, onDone: (List<WatchMarker>) -> Unit) {
@@ -126,6 +152,4 @@ class FirestoreWatchMarkerRepository(
             }
         }
     }
-
-
 }

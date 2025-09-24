@@ -35,7 +35,6 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapType
@@ -45,6 +44,7 @@ import com.veljkotosic.animalwatch.composable.filter.FilterSelector
 import com.veljkotosic.animalwatch.composable.marker.AnimalWatchMarker
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerCreator
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerPreview
+import com.veljkotosic.animalwatch.composable.marker.WatchMarkerUpdater
 import com.veljkotosic.animalwatch.composable.table.WatchMarkerTable
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 
@@ -59,8 +59,10 @@ fun MapScreen(
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
     val currentLocation by mapViewModel.currentLocation.collectAsState()
     val selectedMarker by mapViewModel.selectedMarker.collectAsState()
+    val baseMarker by mapViewModel.baseMarker.collectAsState()
     val mapUiState by mapViewModel.mapUiState.collectAsState()
-    val watchMarkerUiState by mapViewModel.newMarkerUiState.collectAsState()
+    val newMarkerUiState by mapViewModel.newMarkerUiState.collectAsState()
+    val updateMarkerUiState by mapViewModel.updateMarkerUiState.collectAsState()
     val filteredMarkers by mapViewModel.filteredMarkers.collectAsState()
     val filterUiState by mapViewModel.filterUiState.collectAsState()
 
@@ -104,10 +106,25 @@ fun MapScreen(
         if (mapUiState.markerCreatorOpen) {
             WatchMarkerCreator(
                 mapViewModel = mapViewModel,
-                uiState = watchMarkerUiState,
-                cameraPositionState = cameraPositionState,
+                uiState = newMarkerUiState,
                 onDismiss = {
                     mapViewModel.closeMarkerCreator()
+                },
+                onCreate = {
+                    mapViewModel.createMarker(context, cameraPositionState)
+                }
+            )
+        }
+
+        baseMarker?.let { marker ->
+            WatchMarkerUpdater(
+                mapViewModel = mapViewModel,
+                uiState = updateMarkerUiState,
+                onDismiss = {
+                    mapViewModel.closeMarkerUpdater()
+                },
+                onUpdate = {
+                    mapViewModel.updateMarker(context, marker)
                 }
             )
         }

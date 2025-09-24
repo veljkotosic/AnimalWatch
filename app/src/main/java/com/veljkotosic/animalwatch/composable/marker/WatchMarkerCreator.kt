@@ -63,7 +63,6 @@ import coil.request.ImageRequest
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.maps.android.compose.CameraPositionState
 import com.veljkotosic.animalwatch.composable.SeverityComboBox
 import com.veljkotosic.animalwatch.composable.tag.TagSelector
 import com.veljkotosic.animalwatch.ui.theme.Background
@@ -80,255 +79,41 @@ import java.io.File
 fun WatchMarkerCreator(
     mapViewModel: MapViewModel,
     uiState: WatchMarkerUiState,
-    cameraPositionState: CameraPositionState,
     modifier: Modifier = Modifier,
-    usedForUpdate: Boolean = false,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onCreate: () -> Unit
 ) {
-    val context = LocalContext.current
-    val configuration = LocalConfiguration.current
-    val screenHeight = configuration.screenHeightDp.dp
-    val maxHeight = screenHeight * 0.3f
-
-    val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
-    val cameraPermissionCoroutineScope = rememberCoroutineScope()
-
-    val processingUiState by mapViewModel.processingUiState.collectAsState()
-
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-
-    val keyboardController = LocalSoftwareKeyboardController.current
-
-    var severityExpanded by remember { mutableStateOf(false) }
-    var showOptions by remember { mutableStateOf(false) }
-
-    val imageFile = remember {
-        File(context.cacheDir, "marker_image_.jpg").apply {
-            createNewFile()
-        }
-    }
-
-    val uri = remember {
-        FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            imageFile
-        )
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success) {
-            val newUri = uri.buildUpon().appendQueryParameter("ts", System.currentTimeMillis().toString()).build()
-            mapViewModel.onImageUriChanged(newUri)
-        }
-    }
-
-    LaunchedEffect(cameraPermission.status, uiState.userRequestedCamera) {
-        if (cameraPermission.status.isGranted && uiState.userRequestedCamera) {
-            mapViewModel.resetCameraRequest()
-            cameraLauncher.launch(uri)
-        }
-    }
-
-    ModalBottomSheet(
-        sheetState = sheetState,
-        containerColor = Background,
-        modifier = Modifier.fillMaxWidth(),
-        onDismissRequest = {
+    WatchMarkerCreatorBase(
+        mapViewModel = mapViewModel,
+        uiState = uiState,
+        modifier = modifier,
+        onClear = {
+            mapViewModel.resetNewMarkerUiState()
+        },
+        onTitleChanged = {
+            mapViewModel.onNewMarkerTitleChanged(it)
+        },
+        onDescriptionChanged = {
+            mapViewModel.onNewMarkerDescriptionChanged(it)
+        },
+        onSeverityChanged = {
+            mapViewModel.onNewMarkerSeverityChanged(it)
+        },
+        onImageUriChanged = {
+            mapViewModel.onNewMarkerImageUriChanged(it)
+        },
+        onTagAdded = {
+            mapViewModel.onNewMarkerTagAdded(it)
+        },
+        onTagRemoved = {
+            mapViewModel.onNewMarkerTagRemoved(it)
+        },
+        confirmButtonText = "Create",
+        onConfirm = {
+            onCreate()
+        },
+        onDismiss = {
             onDismiss()
         }
-    ) {
-        Column (
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .clickable(
-                    indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) {
-                    keyboardController?.hide()
-                }
-                .padding(8.dp)
-        ) {
-            OutlinedTextField(
-                value = uiState.title,
-                onValueChange = {
-                    if (it.length <= 25) {
-                        mapViewModel.onTitleChanged(it)
-                    }
-                },
-                label = {
-                    Text("Title")
-                },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            )
-
-            OutlinedTextField(
-                value = uiState.description,
-                onValueChange = { mapViewModel.onDescriptionChanged(it) },
-                label = {
-                    Text("Description")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            )
-
-            SeverityComboBox(
-                uiState = uiState,
-                onSelectionChanged = {
-                    mapViewModel.onSeverityChanged(it)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                thickness = 1.dp,
-                color = Color.Gray
-            )
-
-            if (uiState.imageUri === null) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .heightIn(max = maxHeight)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(BorderStroke(2.dp, Color.Gray), RoundedCornerShape(12.dp))
-                        .fillMaxWidth()
-                        .clickable {
-                            if (cameraPermission.status.isGranted) {
-                                cameraLauncher.launch(uri)
-                            } else {
-                                cameraPermissionCoroutineScope.launch {
-                                    mapViewModel.onCameraRequested()
-                                    cameraPermission.launchPermissionRequest()
-                                }
-                            }
-                        }
-                ) {
-                    Text("Press to open camera", color = Color.Gray)
-                }
-            } else {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(uiState.imageUri)
-                        .setParameter("ts", System.currentTimeMillis())
-                        .build(),
-                    contentDescription = "Image",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .height(maxHeight)
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(BorderStroke(2.dp, Color.Gray), RoundedCornerShape(12.dp))
-                        .fillMaxWidth()
-                        .clickable {
-                            if (cameraPermission.status.isGranted) {
-                                cameraLauncher.launch(uri)
-                            } else {
-                                cameraPermissionCoroutineScope.launch {
-                                    mapViewModel.onCameraRequested()
-                                    cameraPermission.launchPermissionRequest()
-                                }
-                            }
-                        }
-                )
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                thickness = 1.dp,
-                color = Color.Gray
-            )
-
-            FlowRow (
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                uiState.tags.forEach { tag ->
-                    AssistChip(
-                        onClick = {
-                            mapViewModel.onTagRemoved(tag)
-                        },
-                        label = { Text(tag) },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Filled.Remove, contentDescription = "Remove", tint = Color.Red)
-                        }
-                    )
-                }
-
-                AssistChip(
-                    onClick = { showOptions = true },
-                    label = { Text("Add") },
-                    leadingIcon = {
-                        Icon(imageVector = Icons.Filled.Add, contentDescription = "Add")
-                    }
-                )
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                thickness = 1.dp,
-                color = Color.Gray
-            )
-
-            if (showOptions) {
-                TagSelector(
-                    title = "Select tag",
-                    onTagSelected = {
-                        mapViewModel.onTagAdded(it)
-                        showOptions = false
-                    },
-                    onDismissRequest = { showOptions = false },
-                    modifier = Modifier
-                        .background(Background)
-                        .padding(8.dp)
-                )
-            }
-
-            processingUiState.errorMessage?.let {
-                Text(it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
-            }
-
-            Row (
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            ) {
-                Button(
-                    onClick = {
-                        if (!processingUiState.isLoading) {
-                            mapViewModel.createMarker(context, cameraPositionState)
-                        }
-                    }
-                ) {
-                    if (processingUiState.isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
-                    } else {
-                        Text(if (usedForUpdate) "Update marker" else "Create marker")
-                    }
-                }
-
-                TextButton(
-                    onClick = {
-                        mapViewModel.resetMarkerUiState()
-                        mapViewModel.clearError()
-                    }
-                ) {
-                    Text("Clear")
-                }
-            }
-        }
-    }
+    )
 }
