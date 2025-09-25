@@ -2,9 +2,6 @@ package com.veljkotosic.animalwatch.activity
 
 import android.Manifest
 import android.app.AlertDialog
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -15,20 +12,12 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.android.gms.location.LocationServices
-import com.veljkotosic.animalwatch.R
 import com.veljkotosic.animalwatch.data.auth.repository.FireBaseAuthRepository
 import com.veljkotosic.animalwatch.data.marker.repository.FirestoreWatchMarkerRepository
 import com.veljkotosic.animalwatch.data.storage.CloudinaryStorageRepository
@@ -42,8 +31,6 @@ import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModelFactory
 import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModelFactory
-import com.veljkotosic.animalwatch.worker.PeriodicLookUpWorker
-import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
 
 class HomeActivity : ComponentActivity() {
