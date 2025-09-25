@@ -2,9 +2,6 @@ package com.veljkotosic.animalwatch.activity
 
 import android.Manifest
 import android.app.AlertDialog
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -19,15 +16,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
-import com.veljkotosic.animalwatch.R
 import com.veljkotosic.animalwatch.data.auth.repository.FireBaseAuthRepository
 import com.veljkotosic.animalwatch.data.marker.repository.FirestoreWatchMarkerRepository
 import com.veljkotosic.animalwatch.data.storage.CloudinaryStorageRepository
 import com.veljkotosic.animalwatch.data.user.repository.FirestoreUserRepository
 import com.veljkotosic.animalwatch.navigation.home.HomeNavHost
+import com.veljkotosic.animalwatch.service.NearbyMarkersLookUpService
 import com.veljkotosic.animalwatch.ui.theme.AnimalWatchTheme
 import com.veljkotosic.animalwatch.utility.service.isInternetConnectionEnabled
 import com.veljkotosic.animalwatch.utility.service.isLocationEnabled
@@ -38,9 +34,6 @@ import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModelFactory
 import kotlin.system.exitProcess
 
 class HomeActivity : ComponentActivity() {
-    private val CHANNEL_ID = "MARKER_UPDATE_CHANNEL_2"
-    private val CHANNEL_NAME = "Marker Updates"
-
     private val connectionManager by lazy {
         getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
     }
@@ -92,37 +85,7 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 200)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance)
-
-            val notificationManager: NotificationManager =
-                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val notificationIntent = Intent(this, HomeActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
-
-        val pendingNotificationIntent: PendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE)
-
-        mapViewModel.notificationEvent.observe(this) { count ->
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("New markers available")
-                .setContentText("There are $count new markers near you!")
-                .setSmallIcon(R.drawable.logo)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentIntent(pendingNotificationIntent)
-                .setAutoCancel(true)
-                .build()
-
-            NotificationManagerCompat.from(this).notify(1, notification)
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS, Manifest.permission.FOREGROUND_SERVICE), 200)
         }
 
         requestPermissions(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION), 100)
@@ -145,6 +108,11 @@ class HomeActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
+            val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
+            startService(notificationIntent)
+        }
 
         connectionManager.registerDefaultNetworkCallback(networkCallback)
 
@@ -172,6 +140,11 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        stopService(Intent(this, NearbyMarkersLookUpService::class.java))
+    }
+
     @SuppressWarnings("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -182,6 +155,10 @@ class HomeActivity : ComponentActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
         if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             mapViewModel.startLocationUpdates()
+        }
+        if (requestCode == 200 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
+            startService(notificationIntent)
         }
     }
 }
