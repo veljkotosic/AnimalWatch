@@ -84,6 +84,43 @@ class FirestoreWatchMarkerRepository(
         }.await()
     }
 
+    override fun getMarkerCountInArea(centerLatitude: Double, centerLongitude: Double, radiusMeters: Double, onDone: (Result<Int>) -> Unit) {
+        val center = GeoLocation(centerLatitude, centerLongitude)
+        val bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusMeters)
+        val tasks = mutableListOf<Task<QuerySnapshot>>()
+
+        for (b in bounds) {
+            val q = markers
+                .orderBy("positionHash")
+                .startAt(b.startHash)
+                .endAt(b.endHash)
+                .whereEqualTo("state", WatchMarkerState.Active)
+                .whereEqualTo("visibility", WatchMarkerVisibility.Public)
+            tasks.add(q.get())
+        }
+
+        Tasks.whenAllComplete(tasks)
+            .addOnSuccessListener {
+                try {
+                    var markerCount = 0
+                    for (task in tasks) {
+                        val snapshot = task.result
+                        for (doc in snapshot!!.documents) {
+                            val foundMarker = doc.toObject(WatchMarker::class.java) ?: continue
+                            if (GeoFireUtils.getDistanceBetween(center, foundMarker.position.toGeoLocation()) <= radiusMeters) {
+                                markerCount++
+                            }
+                        }
+                    }
+                    onDone(Result.success(markerCount))
+                } catch (e: Exception) {
+                    onDone(Result.failure(e))
+                }
+            }.addOnFailureListener { e ->
+                onDone(Result.failure(e))
+            }
+    }
+
     override fun getMarkerLocationsInArea(centerLatitude: Double, centerLongitude: Double, radiusMeters: Double, onDone: (List<WatchMarker>) -> Unit) {
         val center = GeoLocation(centerLatitude, centerLongitude)
         val bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusMeters)
