@@ -22,37 +22,38 @@ class FirestoreWatchMarkerRepository(
 
     override suspend fun createMarker(marker: WatchMarker) {
         markers.firestore.runTransaction { transaction ->
-            markers.document(marker.id).set(marker)
+            transaction.set(markers.document(marker.id), marker)
 
-            stats.document(marker.ownerId).update("markersCreatedCount", FieldValue.increment(1))
+            transaction.update(stats.document(marker.ownerId), mapOf(
+                "markersCreatedCount" to FieldValue.increment(1),
+                "total" to FieldValue.increment(1)
+            ))
         }.await()
     }
 
     override suspend fun removeMarker(marker: WatchMarker) {
         markers.firestore.runTransaction { transaction ->
-            markers.document(marker.id)
-                .update(mapOf(
-                    "state" to WatchMarkerState.Removed,
-                    "removedOn" to Timestamp.now()
-                ))
+            transaction.update(markers.document(marker.id), mapOf(
+                "state" to WatchMarkerState.Removed,
+                "removedOn" to Timestamp.now()
+            ))
 
             if (marker.baseMarkerId != null) {
-                markers.document(marker.baseMarkerId)
-                    .update(mapOf(
-                        "hasUpdates" to false,
-                        "state" to WatchMarkerState.Active,
-                        "updatedOn" to null
-                    ))
+                transaction.update(markers.document(marker.baseMarkerId), mapOf(
+                    "hasUpdates" to false,
+                    "state" to WatchMarkerState.Active,
+                    "updatedOn" to null
+                ))
 
-                stats.document(marker.ownerId)
-                    .update(mapOf(
-                        "markersUpdatedCount" to FieldValue.increment(-1)
-                    ))
+                transaction.update(stats.document(marker.ownerId), mapOf(
+                    "markersUpdatedCount" to FieldValue.increment(-1),
+                    "total" to FieldValue.increment(-1)
+                ))
             } else {
-                stats.document(marker.ownerId)
-                    .update(mapOf(
-                        "markersCreatedCount" to FieldValue.increment(-1)
-                    ))
+                transaction.update(stats.document(marker.ownerId), mapOf(
+                    "markersCreatedCount" to FieldValue.increment(-1),
+                    "total" to FieldValue.increment(-1)
+                ))
             }
         }.await()
     }
@@ -70,17 +71,19 @@ class FirestoreWatchMarkerRepository(
 
     override suspend fun updateMarker(newMarker: WatchMarker, originalMarker: WatchMarker) {
         markers.firestore.runTransaction { transaction ->
-            markers.document(originalMarker.id)
-                .update(mapOf(
-                    "hasUpdates" to true,
-                    "state" to WatchMarkerState.Updated,
-                    "updatedOn" to Timestamp.now()
-                ))
+            transaction.update(markers.document(originalMarker.id), mapOf(
+                "hasUpdates" to true,
+                "state" to WatchMarkerState.Updated,
+                "updatedOn" to Timestamp.now()
+            ))
 
             val newMarkerWithBase = newMarker.copy(baseMarkerId = originalMarker.id)
-            markers.document(newMarker.id).set(newMarkerWithBase)
+            transaction.set(markers.document(newMarker.id), newMarkerWithBase)
 
-            stats.document(newMarker.ownerId).update("markersUpdatedCount", FieldValue.increment(1))
+            transaction.update(stats.document(newMarker.ownerId), mapOf(
+                "markersUpdatedCount" to FieldValue.increment(1),
+                "total" to FieldValue.increment(1)
+            ))
         }.await()
     }
 
@@ -166,11 +169,17 @@ class FirestoreWatchMarkerRepository(
             if (!doc.exists()) {
                 transaction.set(appraisedBy.document(userId), mapOf("appraisedOn" to Timestamp.now()))
                 transaction.update(markers.document(marker.id), "appraisalCount", FieldValue.increment(1))
-                transaction.update(stats.document(marker.ownerId), "totalAppraisals", FieldValue.increment(1))
+                transaction.update(stats.document(marker.ownerId), mapOf(
+                    "totalAppraisals" to FieldValue.increment(1),
+                    "total" to FieldValue.increment(1)
+                ))
             } else {
                 transaction.delete(appraisedBy.document(userId))
                 transaction.update(markers.document(marker.id), "appraisalCount", FieldValue.increment(-1))
-                transaction.update(stats.document(marker.ownerId), "totalAppraisals", FieldValue.increment(-1))
+                transaction.update(stats.document(marker.ownerId), mapOf(
+                    "totalAppraisals" to FieldValue.increment(-1),
+                    "total" to FieldValue.increment(-1)
+                ))
             }
         }.await()
     }
