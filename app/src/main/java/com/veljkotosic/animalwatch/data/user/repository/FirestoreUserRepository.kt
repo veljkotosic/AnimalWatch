@@ -17,7 +17,7 @@ class FirestoreUserRepository(
             val userWithAvatar = user.copy(avatarUrl = avatarUri)
             transaction.set(users.document(user.uid), userWithAvatar)
 
-            val emptyStats = UserStats(username = user.displayName)
+            val emptyStats = UserStats(uid = user.uid, username = user.displayName)
             transaction.set(stats.document(user.uid), emptyStats)
         }
     }
