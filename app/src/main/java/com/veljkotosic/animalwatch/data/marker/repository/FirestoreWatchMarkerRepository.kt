@@ -1,5 +1,6 @@
 package com.veljkotosic.animalwatch.data.marker.repository
 
+import android.util.Log
 import com.firebase.geofire.GeoFireUtils
 import com.firebase.geofire.GeoLocation
 import com.google.android.gms.tasks.Task
@@ -7,6 +8,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.QuerySnapshot
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarker
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarkerState
@@ -122,6 +124,52 @@ class FirestoreWatchMarkerRepository(
             }.addOnFailureListener { e ->
                 onDone(Result.failure(e))
             }
+    }
+
+    private var listeners = mutableListOf<ListenerRegistration>()
+
+    override fun observeMarkersInArea(centerLatitude: Double, centerLongitude: Double, radiusMeters: Double, onChange: (List<WatchMarker>) -> Unit) {
+        listeners.forEach { it.remove() }
+        listeners.clear()
+
+        val center = GeoLocation(centerLatitude, centerLongitude)
+        val bounds = GeoFireUtils.getGeoHashQueryBounds(center, radiusMeters)
+        val foundMarkers = mutableMapOf<String, WatchMarker>()
+
+        for (b in bounds) {
+            val query = markers
+                .orderBy("positionHash")
+                .startAt(b.startHash)
+                .endAt(b.endHash)
+                .whereEqualTo("state", WatchMarkerState.Active)
+                .whereEqualTo("visibility", WatchMarkerVisibility.Public)
+
+            val listener = query.addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("Firestore", "Listen failed: ", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    for (doc in snapshot.documents) {
+                        val marker = doc.toObject(WatchMarker::class.java) ?: continue
+                        val distance = GeoFireUtils.getDistanceBetween(center, marker.position.toGeoLocation())
+                        if (distance <= radiusMeters) {
+                            foundMarkers[marker.id] = marker
+                        } else {
+                            foundMarkers.remove(marker.id)
+                        }
+                    }
+                    onChange(foundMarkers.values.toList())
+                }
+            }
+            listeners.add(listener)
+        }
+    }
+
+    override fun stopObservingMarkers() {
+        listeners.forEach { it.remove() }
+        listeners.clear()
     }
 
     override fun getMarkerLocationsInArea(centerLatitude: Double, centerLongitude: Double, radiusMeters: Double, onDone: (List<WatchMarker>) -> Unit) {

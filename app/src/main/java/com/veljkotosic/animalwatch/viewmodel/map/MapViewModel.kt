@@ -6,8 +6,6 @@ import android.net.Uri
 import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresPermission
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.firebase.geofire.GeoFireUtils
@@ -37,15 +35,12 @@ import com.veljkotosic.animalwatch.utility.toGeoPoint
 import com.veljkotosic.animalwatch.utility.toLatLng
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MapViewModel (
@@ -55,9 +50,6 @@ class MapViewModel (
     private val storageRepository: StorageRepository,
     private val fusedLocationClient: FusedLocationProviderClient
 ) : ViewModel() {
-    private val _notificationEvent = MutableLiveData<Int>()
-    val notificationEvent : LiveData<Int> = _notificationEvent
-
     private val _filterUiState = MutableStateFlow(WatchMarkerFilterUiState())
     val filterUiState: StateFlow<WatchMarkerFilterUiState> = _filterUiState.asStateFlow()
 
@@ -149,16 +141,6 @@ class MapViewModel (
             .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location ->
                 location?.let {
-                    _currentLocation.value = LatLng(it.latitude, it.longitude)
-                }
-            }
-    }
-
-    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
-    fun getCachedLocation() {
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                location.let {
                     _currentLocation.value = LatLng(it.latitude, it.longitude)
                 }
             }
@@ -472,15 +454,6 @@ class MapViewModel (
         }
     }
 
-    fun forceRefreshMarkers()  {
-        val mostRecentLocation = _currentLocation.value
-        Log.i("Scan", "Force refresh on location ${mostRecentLocation?.latitude}, ${mostRecentLocation?.longitude}")
-
-        if (mostRecentLocation != null) {
-            startPeriodicLookUp(mostRecentLocation)
-        }
-    }
-
     fun getBaseMarker(baseMarkerId: String) = viewModelScope.launch {
         try {
             _processingUiState.update { it.copy(isLoading = true) }
@@ -503,25 +476,6 @@ class MapViewModel (
 
     fun ownsMarker() : Boolean {
         return _selectedMarker.value?.ownerId == _userState.value?.uid
-    }
-
-    private fun nearbyMarkerCount() {
-        if (_currentLocation.value != null) {
-            var count = 0
-
-            _loadedMarkers.value.forEach { marker ->
-                if (GeoFireUtils.getDistanceBetween(
-                        _currentLocation.value!!.toGeoLocation(),
-                        marker.position.toGeoLocation()
-                ) <= 200.0) {
-                    count++
-                }
-            }
-
-            if (count > 0) {
-                _notificationEvent.postValue(count)
-            }
-        }
     }
 
     private fun loadUser() = viewModelScope.launch {
@@ -548,24 +502,6 @@ class MapViewModel (
         }
     }
 
-    private var periodicLookUpJob: Job? = null
-
-    private fun startPeriodicLookUp(location: LatLng) {
-        periodicLookUpJob?.cancel()
-        periodicLookUpJob = viewModelScope.launch {
-            getMarkerLocationsInArea(location)
-            nearbyMarkerCount()
-
-            while (isActive) {
-                delay(2 * 60 * 1000)
-
-                val mostRecentLocation = _currentLocation.value ?: location
-                getMarkerLocationsInArea(mostRecentLocation)
-                nearbyMarkerCount()
-            }
-        }
-    }
-
     private val locationCallback = object : LocationCallback() {
         override fun onLocationResult(p0: LocationResult) {
             Log.i("Location", "Location updated")
@@ -587,6 +523,17 @@ class MapViewModel (
         )
     }
 
+    private fun startObservingMarkers(center: LatLng) {
+        markerRepository.observeMarkersInArea(center.latitude, center.longitude, _mapUiState.value.searchRadiusMeters) {
+            _loadedMarkers.value = it
+            applyFilters()
+        }
+    }
+
+    private fun stopObservingMarkers() {
+        markerRepository.stopObservingMarkers()
+    }
+
     init {
         loadUser()
 
@@ -597,12 +544,13 @@ class MapViewModel (
         viewModelScope.launch {
             val initialLocation = _currentLocation.filterNotNull().first()
 
-            startPeriodicLookUp(initialLocation)
+            startObservingMarkers(initialLocation)
         }
     }
 
     override fun onCleared() {
         super.onCleared()
         fusedLocationClient.removeLocationUpdates(locationCallback)
+        stopObservingMarkers()
     }
 }
