@@ -56,7 +56,7 @@ class NearbyMarkersLookUpService : Service() {
         scope.launch {
             while (isActive) {
                 lookUp()
-                delay(2 * 60 * 1000)
+                delay(5 * 60 * 1000)
             }
         }
     }
@@ -73,6 +73,8 @@ class NearbyMarkersLookUpService : Service() {
                         result.onSuccess { count ->
                             if (count > 0) {
                                 updateNotification("There are $count new markers near you!")
+                            } else {
+                                updateNotification("No markers nearby.")
                             }
                         }.onFailure {
 
