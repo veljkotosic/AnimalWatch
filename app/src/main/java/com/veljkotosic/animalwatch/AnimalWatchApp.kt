@@ -22,7 +22,7 @@ class AnimalWatchApp : Application() {
             val channel = NotificationChannel(
                 NotificationChannels.NEARBY_MARKERS,
                 "Nearby markers",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_DEFAULT
             )
             manager.createNotificationChannel(channel)
         }
