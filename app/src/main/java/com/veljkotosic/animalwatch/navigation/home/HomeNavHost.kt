@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -27,10 +28,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.navigation.animation.AnimatedNavHost
 import com.veljkotosic.animalwatch.screen.Screens
-import com.veljkotosic.animalwatch.ui.theme.AnimalWatchTheme
 import com.veljkotosic.animalwatch.ui.theme.Background
 import com.veljkotosic.animalwatch.ui.theme.Primary
 import com.veljkotosic.animalwatch.ui.theme.Secondary
+import com.veljkotosic.animalwatch.viewmodel.leaderboard.LeaderboardViewModel
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 
@@ -39,6 +40,7 @@ import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
 fun HomeNavHost(
     mapViewModel: MapViewModel,
     profileViewModel: ProfileViewModel,
+    leaderboardViewModel: LeaderboardViewModel,
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
@@ -58,61 +60,58 @@ fun HomeNavHost(
         Icons.Filled.Leaderboard
     )
 
-    val startDestination by remember { mutableStateOf(Screens.Map.route) }
+    val startDestination by remember { mutableStateOf(Screens.Profile.route) }
 
-    AnimalWatchTheme {
-        Scaffold(
-            bottomBar = {
-                NavigationBar (
-                    containerColor = Primary,
-                    contentColor = Secondary,
-                    modifier = Modifier.height(96.dp)
-                ) {
-                    tabs.forEachIndexed { index, screen ->
-                        val selected = currentRoute == screen.route
-                        NavigationBarItem(
-                            icon = {
-                                Icon(imageVector = tabIcons[index], contentDescription = screen.route)
-                            },
-                            selected = selected,
-                            onClick = {
-                                if (!selected) {
-                                    navController.navigate(screen.route) {
-                                        launchSingleTop = true
-                                        restoreState = true
-                                        popUpTo(navController.graph.startDestinationId) {
-                                            saveState = true
-                                        }
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.primary,
+        bottomBar = {
+            NavigationBar (
+                containerColor = Primary,
+                contentColor = Secondary,
+                modifier = Modifier.height(96.dp)
+            ) {
+                tabs.forEachIndexed { index, screen ->
+                    val selected = currentRoute == screen.route
+                    NavigationBarItem(
+                        icon = {
+                            Icon(imageVector = tabIcons[index], contentDescription = screen.route)
+                        },
+                        selected = selected,
+                        onClick = {
+                            if (!selected) {
+                                navController.navigate(screen.route) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                    popUpTo(navController.graph.startDestinationId) {
+                                        saveState = true
                                     }
                                 }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Color.Transparent
-                            ),
-                            modifier = Modifier.drawWithContent {
-                                drawContent()
-                                if (selected) {
-                                    drawRect(
-                                        color = Background,
-                                        topLeft = Offset(0f, 0f),
-                                        size = Size(size.width, 4.dp.toPx())
-                                    )
-                                }
                             }
-                        )
-                    }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.drawWithContent {
+                            drawContent()
+                            if (selected) {
+                                drawRect(
+                                    color = Background,
+                                    topLeft = Offset(0f, 0f),
+                                    size = Size(size.width, 4.dp.toPx())
+                                )
+                            }
+                        }
+                    )
                 }
             }
-        ) {
-            paddingValues -> AnimatedNavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(paddingValues)
-            ) {
-                profileNavigation(navController, profileViewModel, Screens.Profile.route, onSignOut, 600, FastOutSlowInEasing)
-                mapNavigation(navController, mapViewModel, Screens.Map.route, 600, FastOutSlowInEasing)
-                leaderboardNavigation(navController, Screens.Leaderboard.route, 600, FastOutSlowInEasing)
-            }
+        }
+    ) {
+        paddingValues -> AnimatedNavHost(navController = navController, startDestination = startDestination, modifier = Modifier.padding(paddingValues))
+        {
+            profileNavigation(navController, profileViewModel, Screens.Profile.route, onSignOut, 600, FastOutSlowInEasing)
+            mapNavigation(navController, mapViewModel, Screens.Map.route, 600, FastOutSlowInEasing)
+            leaderboardNavigation(navController, leaderboardViewModel, Screens.Leaderboard.route, 600, FastOutSlowInEasing)
         }
     }
 }
