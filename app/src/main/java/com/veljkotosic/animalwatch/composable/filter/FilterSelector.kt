@@ -212,7 +212,10 @@ fun FilterSelector(
                 {
                     Text("Cancel")
                 }
-            }
+            },
+            colors = DatePickerDefaults.colors(
+                containerColor = Background
+            )
         ) {
             DateRangePicker(
                 state = dateRangePickerState,
@@ -224,7 +227,9 @@ fun FilterSelector(
                     subheadContentColor = Primary,
                     selectedDayContainerColor = Primary,
                     selectedDayContentColor = Background,
-                    todayContentColor = Primary
+                    todayContentColor = Primary,
+                    dayInSelectionRangeContainerColor = Background,
+                    dayInSelectionRangeContentColor = Primary
                 ),
                 modifier = Modifier.padding(8.dp)
             )
