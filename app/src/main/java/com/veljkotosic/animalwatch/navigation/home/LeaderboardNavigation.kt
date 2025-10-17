@@ -8,9 +8,11 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.veljkotosic.animalwatch.screen.home.LeaderboardScreen
+import com.veljkotosic.animalwatch.viewmodel.leaderboard.LeaderboardViewModel
 
 fun NavGraphBuilder.leaderboardNavigation (
     navController: NavController,
+    leaderboardViewModel: LeaderboardViewModel,
     route: String,
     duration: Int,
     easing: Easing
@@ -40,6 +42,6 @@ fun NavGraphBuilder.leaderboardNavigation (
             )
         }
     ) {
-        LeaderboardScreen(navController)
+        LeaderboardScreen(navController, leaderboardViewModel)
     }
 }
