@@ -15,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -42,6 +45,7 @@ import com.veljkotosic.animalwatch.composable.SeverityLabel
 import com.veljkotosic.animalwatch.composable.YesNoDialog
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarker
 import com.veljkotosic.animalwatch.ui.theme.Background
+import com.veljkotosic.animalwatch.ui.theme.Primary
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,7 +169,8 @@ fun WatchMarkerPreview(
                         Button(
                             onClick = {
                                 mapViewModel.openMarkerUpdater(watchMarker)
-                            }
+                            },
+                            enabled = !mapUiState.markerTooFar
                         ) {
                             Text("Update marker")
                         }
@@ -180,6 +185,25 @@ fun WatchMarkerPreview(
                     ) {
                         Text("See original")
                     }
+                }
+            }
+
+            if (mapUiState.markerTooFar && !mapViewModel.ownsMarker()) {
+                Row (
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Info",
+                        tint = Primary,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(
+                        "You are too far to interact with this marker.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Primary
+                    )
                 }
             }
 
