@@ -12,5 +12,6 @@ data class MapUiState(
     val markerCreatorOpen: Boolean = false,
     val markerSearchOpen: Boolean = false,
     val searchRadiusMeters: Double = 3500.0,
-    val confirmDeleteAlertOpen: Boolean = false
+    val confirmDeleteAlertOpen: Boolean = false,
+    val markerTooFar: Boolean = true
 )
