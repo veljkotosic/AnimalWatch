@@ -13,6 +13,11 @@ class FirestoreUserRepository(
     private val stats = firestore.collection("stats")
 
     override suspend fun createUser(user: User, avatarUri: String) {
+        user.displayName.trim()
+        user.name.trim()
+        user.surname.trim()
+        user.phoneNumber.trim()
+
         users.firestore.runTransaction { transaction ->
             val userWithAvatar = user.copy(avatarUrl = avatarUri)
             transaction.set(users.document(user.uid), userWithAvatar)

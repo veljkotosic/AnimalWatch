@@ -23,6 +23,9 @@ class FirestoreWatchMarkerRepository(
     private val stats = firestore.collection("stats")
 
     override suspend fun createMarker(marker: WatchMarker) {
+        marker.title.trim()
+        marker.description.trim()
+
         markers.firestore.runTransaction { transaction ->
             transaction.set(markers.document(marker.id), marker)
 
