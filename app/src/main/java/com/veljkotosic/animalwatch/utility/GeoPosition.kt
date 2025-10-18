@@ -1,5 +1,6 @@
 package com.veljkotosic.animalwatch.utility
 
+import android.location.Location
 import com.firebase.geofire.GeoLocation
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.firestore.GeoPoint
@@ -26,4 +27,8 @@ fun GeoLocation.toLatLng() : LatLng {
 
 fun GeoLocation.toGeoPoint() : GeoPoint {
     return GeoPoint(this.latitude, this.longitude)
+}
+
+fun Location.toGeoLocation() : GeoLocation {
+    return GeoLocation(this.latitude, this.longitude)
 }
