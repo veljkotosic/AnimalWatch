@@ -61,7 +61,10 @@ fun YesNoDialog (
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(
-                    onClick = { onYes() },
+                    onClick = {
+                        onYes()
+                        onDismiss()
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     if (yesText != null) {
@@ -71,7 +74,10 @@ fun YesNoDialog (
                     }
                 }
                 Button(
-                    onClick = { onNo() },
+                    onClick = {
+                        onNo()
+                        onDismiss()
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 16.dp)
