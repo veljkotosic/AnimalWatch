@@ -2,6 +2,7 @@ package com.veljkotosic.animalwatch.screen.home
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,6 +47,7 @@ import com.veljkotosic.animalwatch.composable.marker.AnimalWatchMarker
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerCreator
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerPreview
 import com.veljkotosic.animalwatch.composable.marker.WatchMarkerUpdater
+import com.veljkotosic.animalwatch.composable.search.MarkerSearch
 import com.veljkotosic.animalwatch.composable.table.WatchMarkerTable
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 
@@ -64,29 +67,30 @@ fun MapScreen(
     val newMarkerUiState by mapViewModel.newMarkerUiState.collectAsState()
     val updateMarkerUiState by mapViewModel.updateMarkerUiState.collectAsState()
     val filteredMarkers by mapViewModel.filteredMarkers.collectAsState()
-    val filterUiState by mapViewModel.filterUiState.collectAsState()
 
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(mapUiState.defaultLocation, 7f)
     }
     var uiSettings by remember { mutableStateOf(MapUiSettings()) }
-    var properties by remember {
-        mutableStateOf(MapProperties(mapType = MapType.NORMAL))
-    }
 
     LaunchedEffect(mapUiState.userLoaded) {
-        if (mapUiState.userLoaded) {
+        if (mapUiState.userLoaded && currentLocation != null) {
             cameraPositionState.position = CameraPosition.fromLatLngZoom(currentLocation!!, 15f)
         }
     }
 
-    //Dozvola za lokaciju
     @SuppressLint("MissingPermission")
-    LaunchedEffect(Unit) {
+    LaunchedEffect(locationPermission.status.isGranted) {
         if (locationPermission.status.isGranted) {
             mapViewModel.getCurrentLocation()
         } else {
             locationPermission.launchPermissionRequest()
+        }
+    }
+
+    LaunchedEffect(mapUiState.newMarkerFilteredOut) {
+        if (mapUiState.newMarkerFilteredOut) {
+            Toast.makeText(context, "Newly created marker may be hidden by existing filters", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -150,6 +154,15 @@ fun MapScreen(
             )
         }
 
+        if (mapUiState.markerSearchOpen) {
+            MarkerSearch(
+                mapViewModel = mapViewModel,
+                onDismiss = {
+                    mapViewModel.closeMarkerSearch()
+                }
+            )
+        }
+
         GoogleMap (
             cameraPositionState = cameraPositionState,
             uiSettings = uiSettings,
@@ -164,27 +177,26 @@ fun MapScreen(
         ) {
             if (cameraPositionState.position.zoom >= 12f) {
                 filteredMarkers.forEach { marker ->
-                    AnimalWatchMarker (
-                        watchMarker = marker,
-                        onClick = {
-                            mapViewModel.selectMarker(marker)
-                            mapViewModel.moveCameraToMarker(marker, cameraPositionState)
-                            true
-                        }
-                    )
+                    key(marker.id) {
+                        AnimalWatchMarker (
+                            watchMarker = marker,
+                            onClick = {
+                                mapViewModel.selectMarker(marker)
+                                mapViewModel.moveCameraToMarker(marker, cameraPositionState)
+                                true
+                            }
+                        )
+                    }
                 }
             }
         }
 
         Column (
-            modifier = Modifier.fillMaxHeight()
-                .padding(bottom = 28.dp),
+            modifier = Modifier.fillMaxHeight().padding(bottom = 28.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
             Button(
-                modifier = Modifier
-                    .size(64.dp)
-                    .padding(4.dp),
+                modifier = Modifier.size(64.dp).padding(4.dp),
                 shape = CircleShape,
                 contentPadding = PaddingValues(6.dp),
                 onClick = {
@@ -194,16 +206,12 @@ fun MapScreen(
                 Icon(
                     imageVector = Icons.Filled.TableRows,
                     contentDescription = "Table of markers",
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .fillMaxSize()
+                    modifier = Modifier.padding(2.dp).fillMaxSize()
                 )
             }
 
             Button(
-                modifier = Modifier
-                    .size(64.dp)
-                    .padding(4.dp),
+                modifier = Modifier.size(64.dp).padding(4.dp),
                 shape = CircleShape,
                 contentPadding = PaddingValues(6.dp),
                 onClick = {
@@ -213,36 +221,27 @@ fun MapScreen(
                 Icon(
                     imageVector = Icons.Filled.FilterAlt,
                     contentDescription = "Filter markers",
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .fillMaxSize()
+                    modifier = Modifier.padding(2.dp).fillMaxSize()
                 )
             }
 
             Button(
-                modifier = Modifier
-                    .size(64.dp)
-                    .padding(4.dp),
+                modifier = Modifier.size(64.dp).padding(4.dp),
                 shape = CircleShape,
                 contentPadding = PaddingValues(6.dp),
                 onClick = {
-                    //TODO pretraga objekata
-                    mapViewModel.forceRefreshMarkers()
+                    mapViewModel.openMarkerSearch()
                 }
             ) {
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = "Search markers",
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .fillMaxSize()
+                    modifier = Modifier.padding(2.dp).fillMaxSize()
                 )
             }
 
             Button(
-                modifier = Modifier
-                    .size(64.dp)
-                    .padding(4.dp),
+                modifier = Modifier.size(64.dp).padding(4.dp),
                 shape = CircleShape,
                 contentPadding = PaddingValues(6.dp),
                 onClick = {
@@ -252,9 +251,7 @@ fun MapScreen(
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Create marker",
-                    modifier = Modifier
-                        .padding(2.dp)
-                        .fillMaxSize()
+                    modifier = Modifier.padding(2.dp).fillMaxSize()
                 )
             }
         }
