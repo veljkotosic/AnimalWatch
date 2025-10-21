@@ -134,7 +134,6 @@ fun RegisterScreen(
         }
     }
 
-    // Pokretanje kamere nakon davanja dozvole, a samo na pritisak dugmeta za kameru
     LaunchedEffect(cameraPermission.status, registrationUiState.userRequestedCamera) {
         if (cameraPermission.status.isGranted && registrationUiState.userRequestedCamera) {
             registrationViewModel.resetCameraRequest()
@@ -187,7 +186,9 @@ fun RegisterScreen(
                 visualTransformation = if (registrationUiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
@@ -213,7 +214,9 @@ fun RegisterScreen(
                 visualTransformation = if (registrationUiState.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Next
+                    imeAction = ImeAction.Next,
+                    keyboardType = KeyboardType.Password,
+                    autoCorrectEnabled = false
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
