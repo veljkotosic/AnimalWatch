@@ -54,6 +54,7 @@ fun LeaderboardScreen(
                 }
                 LeaderBoardItem(
                     userStats = userStats,
+                    index = index + 1,
                     modifier = Modifier.fillMaxWidth(),
                     color = outlineColor,
                     itemHeight = itemHeight,

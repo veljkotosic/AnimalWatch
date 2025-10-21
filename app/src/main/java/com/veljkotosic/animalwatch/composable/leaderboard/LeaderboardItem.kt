@@ -25,6 +25,7 @@ import com.veljkotosic.animalwatch.data.stat.entity.UserStats
 @Composable
 fun LeaderBoardItem(
     userStats: UserStats,
+    index: Int,
     modifier: Modifier = Modifier,
     color: Color = Color.Transparent,
     itemHeight: Dp = 48.dp,
@@ -47,13 +48,19 @@ fun LeaderBoardItem(
         horizontalArrangement = Arrangement.Start
     ) {
         Text(
+            text = "${index}.",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.padding(end = 4.dp))
+        Text(
             text = userStats.username,
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.weight(1f))
         Text(
-            text = "${userStats.total}",
+            text = "${userStats.total} pts",
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
             color = MaterialTheme.colorScheme.onSurface
         )
