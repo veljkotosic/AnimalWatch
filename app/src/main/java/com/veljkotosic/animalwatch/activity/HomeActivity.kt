@@ -16,10 +16,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.core.content.ContextCompat
+import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
 import com.veljkotosic.animalwatch.data.auth.repository.FireBaseAuthRepository
 import com.veljkotosic.animalwatch.data.marker.repository.FirestoreWatchMarkerRepository
+import com.veljkotosic.animalwatch.data.stat.repository.FirestoreUserStatsRepository
 import com.veljkotosic.animalwatch.data.storage.CloudinaryStorageRepository
 import com.veljkotosic.animalwatch.data.user.repository.FirestoreUserRepository
 import com.veljkotosic.animalwatch.navigation.home.HomeNavHost
@@ -27,6 +28,8 @@ import com.veljkotosic.animalwatch.service.NearbyMarkersLookUpService
 import com.veljkotosic.animalwatch.ui.theme.AnimalWatchTheme
 import com.veljkotosic.animalwatch.utility.service.isInternetConnectionEnabled
 import com.veljkotosic.animalwatch.utility.service.isLocationEnabled
+import com.veljkotosic.animalwatch.viewmodel.leaderboard.LeaderboardViewModel
+import com.veljkotosic.animalwatch.viewmodel.leaderboard.LeaderboardViewModelFactory
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModelFactory
 import com.veljkotosic.animalwatch.viewmodel.profile.ProfileViewModel
@@ -68,6 +71,13 @@ class HomeActivity : ComponentActivity() {
         ProfileViewModelFactory(FireBaseAuthRepository())
     }
 
+    private val leaderboardViewModel: LeaderboardViewModel by viewModels {
+        LeaderboardViewModelFactory(
+            FirestoreUserStatsRepository(),
+            FirestoreUserRepository()
+        )
+    }
+
     private fun showExitDialog(message: String) {
         AlertDialog.Builder(this)
             .setTitle("App closing")
@@ -96,6 +106,7 @@ class HomeActivity : ComponentActivity() {
                 HomeNavHost(
                     mapViewModel = mapViewModel,
                     profileViewModel = profileViewModel,
+                    leaderboardViewModel = leaderboardViewModel,
                     onSignOut = {
                         val intent = Intent(this, AuthActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -109,12 +120,12 @@ class HomeActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED) {
-            val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
-            startService(notificationIntent)
-        }
-
         connectionManager.registerDefaultNetworkCallback(networkCallback)
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mapViewModel.startLocationUpdates()
+        }
 
         val filter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
         registerReceiver(locationReceiver, filter)
@@ -129,6 +140,22 @@ class HomeActivity : ComponentActivity() {
         unregisterReceiver(locationReceiver)
     }
 
+    override fun onPause() {
+        super.onPause()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
+                startForegroundService(notificationIntent)
+            }
+        } else {
+            val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
+            startForegroundService(notificationIntent)
+        }
+
+        mapViewModel.stopLocationUpdates()
+    }
+
     override fun onResume() {
         super.onResume()
 
@@ -138,6 +165,13 @@ class HomeActivity : ComponentActivity() {
         if (!isInternetConnectionEnabled(this)) {
             showExitDialog("Internet connection is required for the app to function properly")
         }
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mapViewModel.startLocationUpdates()
+        }
+
+        stopService(Intent(this, NearbyMarkersLookUpService::class.java))
     }
 
     override fun onDestroy() {
@@ -155,10 +189,6 @@ class HomeActivity : ComponentActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults, deviceId)
         if (requestCode == 100 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             mapViewModel.startLocationUpdates()
-        }
-        if (requestCode == 200 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            val notificationIntent = Intent(this, NearbyMarkersLookUpService::class.java)
-            startService(notificationIntent)
         }
     }
 }
