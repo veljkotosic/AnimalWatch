@@ -1,18 +1,15 @@
 package com.veljkotosic.animalwatch.viewmodel.map
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
-import android.os.Looper
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.firebase.geofire.GeoFireUtils
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.LatLng
@@ -26,6 +23,7 @@ import com.veljkotosic.animalwatch.data.storage.StorageRepository
 import com.veljkotosic.animalwatch.data.user.entity.User
 import com.veljkotosic.animalwatch.data.user.repository.UserRepository
 import com.veljkotosic.animalwatch.uistate.map.MapUiState
+import com.veljkotosic.animalwatch.uistate.map.SearchParametersUiState
 import com.veljkotosic.animalwatch.uistate.map.WatchMarkerFilterUiState
 import com.veljkotosic.animalwatch.uistate.map.WatchMarkerUiState
 import com.veljkotosic.animalwatch.uistate.processing.ProcessingUiState
@@ -35,13 +33,17 @@ import com.veljkotosic.animalwatch.utility.toGeoPoint
 import com.veljkotosic.animalwatch.utility.toLatLng
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class MapViewModel (
     private val authRepository: AuthRepository,
@@ -58,6 +60,9 @@ class MapViewModel (
 
     private val _mapUiState = MutableStateFlow(MapUiState())
     val mapUiState: StateFlow<MapUiState> = _mapUiState.asStateFlow()
+
+    private val _searchParametersUiState = MutableStateFlow(SearchParametersUiState())
+    val searchParametersUiState: StateFlow<SearchParametersUiState> = _searchParametersUiState.asStateFlow()
 
     private val _newMarkerUiState = MutableStateFlow(WatchMarkerUiState())
     val newMarkerUiState: StateFlow<WatchMarkerUiState> = _newMarkerUiState.asStateFlow()
@@ -157,10 +162,18 @@ class MapViewModel (
 
     fun selectMarker(newMarker: WatchMarker) {
         _selectedMarker.value = newMarker
+
+        if (_currentLocation.value != null) {
+            if (GeoFireUtils.getDistanceBetween(newMarker.position.toGeoLocation(), _currentLocation.value!!.toGeoLocation()) <= 200.0) {
+                _mapUiState.update { it.copy(markerTooFar = false) }
+            }
+        }
     }
 
     fun deselectMarker() {
         _selectedMarker.value = null
+
+        _mapUiState.update { it.copy(markerTooFar = true) }
     }
 
     fun openMarkerCreator() {
@@ -253,16 +266,6 @@ class MapViewModel (
         _filterUiState.update { it.copy(createdBefore = timestamp) }
     }
 
-    fun resetDistanceParameter() {
-        _mapUiState.update { it.copy(searchRadiusMeters = 5000.0) }
-    }
-
-    fun onDistanceParameterChanged(newDistance: Double) {
-        if (newDistance > 0) {
-            _mapUiState.update { it.copy(searchRadiusMeters = newDistance) }
-        }
-    }
-
     fun openFilters() {
         _mapUiState.update { it.copy(filtersOpen = true) }
     }
@@ -279,15 +282,46 @@ class MapViewModel (
         _mapUiState.update { it.copy(markerTableOpen = false) }
     }
 
+    fun openMarkerSearch() {
+        _mapUiState.update { it.copy(markerSearchOpen = true) }
+    }
+
+    fun closeMarkerSearch() {
+        _mapUiState.update { it.copy(markerSearchOpen = false) }
+    }
+
+    fun resetSearchParameters() {
+        _searchParametersUiState.value = SearchParametersUiState()
+    }
+
+    fun onSearchRadiusMetersChanged(newRadius: Double) {
+        if (newRadius > 0) {
+            _searchParametersUiState.update { it.copy(radiusMeters = newRadius) }
+        }
+    }
+
+    fun searchRadiusMetersInRange(value: Double): Boolean {
+        return value in _searchParametersUiState.value.radiusMetersLowerBound.._searchParametersUiState.value.radiusMetersUpperBound
+    }
+
+    fun searchRadiusMetersInRange(): Boolean {
+        return _searchParametersUiState.value.radiusMeters in
+                _searchParametersUiState.value.radiusMetersLowerBound.._searchParametersUiState.value.radiusMetersUpperBound
+    }
+
     fun applyFilters() {
         val filter = _filterUiState.value
         _filteredMarkers.value = _loadedMarkers.value.filter { marker ->
             (filter.severities.isEmpty() || filter.severities.contains(marker.severity)) &&
-            (filter.owner.isBlank() || filter.owner == marker.ownerUserName) &&
+            (filter.owner.isBlank() || marker.ownerUserName.contains(filter.owner, true)) &&
             (filter.tags.isEmpty() || marker.tags.containsAll(filter.tags)) &&
             (marker.createdOn >= filter.createdAfter) &&
             (marker.createdOn <= filter.createdBefore)
         }
+    }
+
+    fun resetFilteredOutFlag() {
+        _mapUiState.update { it.copy(newMarkerFilteredOut = false) }
     }
 
     private fun isNewMarkerDataValid(): Boolean {
@@ -332,11 +366,14 @@ class MapViewModel (
         return true
     }
 
+    @SuppressLint("MissingPermission")
     fun createMarker(context: Context, cameraPositionState: CameraPositionState) = viewModelScope.launch {
         if (isNewMarkerDataValid()) {
             clearError()
             _processingUiState.update { it.copy(isLoading = true) }
             try {
+                getCurrentLocation()
+
                 val mostRecentLocation = _currentLocation.value ?: throw Exception("Location unavailable")
 
                 val newMarker = WatchMarker(
@@ -363,6 +400,9 @@ class MapViewModel (
                 markerRepository.createMarker(newMarkerWithImage)
 
                 _loadedMarkers.update { it + newMarkerWithImage }
+                applyFilters()
+
+                _mapUiState.update { it.copy(newMarkerFilteredOut = !_filteredMarkers.value.contains(newMarkerWithImage)) }
 
                 moveCameraToMarker(newMarker, cameraPositionState)
 
@@ -382,8 +422,11 @@ class MapViewModel (
             try {
                 _processingUiState.update { it.copy(isLoading = true) }
 
-                markerRepository.removeMarker(_selectedMarker.value!!)
                 _loadedMarkers.update { it - _selectedMarker.value!! }
+                _filteredMarkers.update { it - _selectedMarker.value!! }
+
+                markerRepository.removeMarker(_selectedMarker.value!!)
+
                 deselectMarker()
 
                 _processingUiState.update { it.copy(isSuccess = true) }
@@ -443,17 +486,6 @@ class MapViewModel (
         }
     }
 
-    private fun getMarkerLocationsInArea(center: LatLng) {
-        markerRepository.getMarkerLocationsInArea(
-            center.latitude,
-            center.longitude,
-            _mapUiState.value.searchRadiusMeters
-        ) {
-            _loadedMarkers.value = it
-            applyFilters()
-        }
-    }
-
     fun getBaseMarker(baseMarkerId: String) = viewModelScope.launch {
         try {
             _processingUiState.update { it.copy(isLoading = true) }
@@ -502,29 +534,42 @@ class MapViewModel (
         }
     }
 
-    private val locationCallback = object : LocationCallback() {
-        override fun onLocationResult(p0: LocationResult) {
-            Log.i("Location", "Location updated")
-            p0.lastLocation?.let { location ->
-                _currentLocation.update { LatLng(location.latitude, location.longitude) }
-                Log.i("Location", "New location ${location.latitude},${location.longitude}")
+    private var locationJob: Job? = null
+
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+    fun startLocationUpdates(delaySec: Long = 10L) {
+        locationJob?.cancel()
+
+        locationJob = viewModelScope.launch {
+            while (isActive) {
+                try {
+                    val loc = fusedLocationClient.lastLocation.await()
+                    if (loc != null) {
+                        if (_currentLocation.value == null) {
+                            _currentLocation.value = LatLng(loc.latitude, loc.longitude)
+                            startObservingMarkers(_currentLocation.value!!)
+                        } else {
+                            if (GeoFireUtils.getDistanceBetween(loc.toGeoLocation(), _currentLocation.value!!.toGeoLocation()) > 100.0) {
+                                _currentLocation.value = LatLng(loc.latitude, loc.longitude)
+                                startObservingMarkers(_currentLocation.value!!)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+
+                delay(delaySec * 1000L)
             }
         }
     }
 
-    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
-    fun startLocationUpdates() {
-        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 60000).build()
-
-        fusedLocationClient.requestLocationUpdates(
-            request,
-            locationCallback,
-            Looper.getMainLooper()
-        )
+    fun stopLocationUpdates() {
+        locationJob?.cancel()
     }
 
-    private fun startObservingMarkers(center: LatLng) {
-        markerRepository.observeMarkersInArea(center.latitude, center.longitude, _mapUiState.value.searchRadiusMeters) {
+    fun startObservingMarkers(center: LatLng) {
+        markerRepository.observeMarkersInArea(center.latitude, center.longitude, _searchParametersUiState.value.radiusMeters) {
             _loadedMarkers.value = it
             applyFilters()
         }
@@ -532,6 +577,23 @@ class MapViewModel (
 
     private fun stopObservingMarkers() {
         markerRepository.stopObservingMarkers()
+    }
+
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+    private fun getLastLocation() {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            location?.let {
+                _currentLocation.value = LatLng(it.latitude, it.longitude)
+            }
+        }
+    }
+
+    @RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
+    fun forceRefreshMarkers() {
+        getLastLocation()
+        if (_currentLocation.value != null) {
+            startObservingMarkers(_currentLocation.value!!)
+        }
     }
 
     init {
@@ -543,14 +605,12 @@ class MapViewModel (
     private fun waitForLocation() {
         viewModelScope.launch {
             val initialLocation = _currentLocation.filterNotNull().first()
-
             startObservingMarkers(initialLocation)
         }
     }
 
     override fun onCleared() {
         super.onCleared()
-        fusedLocationClient.removeLocationUpdates(locationCallback)
         stopObservingMarkers()
     }
 }
