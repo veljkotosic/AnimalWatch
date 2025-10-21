@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarker
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarkerSeverity
@@ -47,7 +48,7 @@ fun WatchMarkerTableItem (
                 shape = RoundedCornerShape(16.dp)
             )
             .clickable(enabled = onClick != null) { onClick?.invoke() }
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
@@ -64,7 +65,7 @@ fun WatchMarkerTableItem (
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = watchMarker.ownerUserName,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.width(10.dp))
@@ -72,7 +73,8 @@ fun WatchMarkerTableItem (
                 text = watchMarker.title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
         Spacer(modifier = Modifier.width(10.dp))
