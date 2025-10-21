@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,21 +46,16 @@ fun LeaderBoardItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start
     ) {
-        Row(
-            modifier = Modifier.weight(1f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = userStats.username,
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.width(10.dp))
-            Text(
-                text = "${userStats.total}",
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+        Text(
+            text = userStats.username,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = "${userStats.total}",
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
