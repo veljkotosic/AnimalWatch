@@ -68,7 +68,10 @@ class HomeActivity : ComponentActivity() {
     }
 
     private val profileViewModel: ProfileViewModel by viewModels {
-        ProfileViewModelFactory(FireBaseAuthRepository())
+        ProfileViewModelFactory(
+            FireBaseAuthRepository(),
+            FirestoreUserRepository()
+        )
     }
 
     private val leaderboardViewModel: LeaderboardViewModel by viewModels {
