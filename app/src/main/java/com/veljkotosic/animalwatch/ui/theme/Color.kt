@@ -15,3 +15,5 @@ val Background = Color(0xffeff5e9)
 val Primary = Color(0xff6c9435)
 
 val Secondary = Color(0xff75c736)
+
+val Azure = Color(0xff007fff)

@@ -18,7 +18,7 @@ class FireBaseAuthRepository(
         return result.user!!.uid
     }
 
-    override fun logout() = firebaseAuth.signOut()
+    override fun signOut() = firebaseAuth.signOut()
 
     override fun getCurrentUserId(): String? = firebaseAuth.currentUser?.uid
 

@@ -1,9 +1,8 @@
 package com.veljkotosic.animalwatch.viewmodel.user
 
-import android.content.ContentResolver
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.veljkotosic.animalwatch.data.storage.StorageRepository
 import com.veljkotosic.animalwatch.data.user.entity.User
@@ -20,15 +19,13 @@ class UserViewModel(
     private val _userState = MutableStateFlow<User?>(null)
     val userState: StateFlow<User?> = _userState.asStateFlow()
 
-    fun createUser(user: User, avatarUri: Uri, contentResolver: ContentResolver) = viewModelScope.launch {
-        val publicAvatarUri = storageRepository.uploadImage(user.uid, avatarUri, contentResolver)
-        userRepository.createUser(user, publicAvatarUri)
-        _userState.value = user
-    }
-
-    fun getUser(uid: String) = viewModelScope.launch {
-        _userState.value = userRepository.getUser(uid)
-    }
+    fun createUser(user: User, avatarUri: Uri, context: Context) =
+        viewModelScope.launch {
+            val publicAvatarUri =
+                storageRepository.uploadAvatarImage(user.uid, avatarUri, context)
+            userRepository.createUser(user, publicAvatarUri)
+            _userState.value = user
+        }
 
     fun updateUser(user: User) = viewModelScope.launch {
         userRepository.updateUser(user)
@@ -38,17 +35,5 @@ class UserViewModel(
     fun deleteUser(uid: String) = viewModelScope.launch {
         userRepository.deleteUser(uid)
         _userState.value = null
-    }
-}
-
-class UserViewModelFactory(
-    private val userRepository: UserRepository,
-    private val storageRepository: StorageRepository
-) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            return UserViewModel(userRepository, storageRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

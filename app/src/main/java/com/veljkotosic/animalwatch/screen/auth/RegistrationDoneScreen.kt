@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.veljkotosic.animalwatch.composable.logo.Logo
 import com.veljkotosic.animalwatch.screen.Screens
-import com.veljkotosic.animalwatch.component.Logo
 
 @Composable
 fun RegistrationDoneScreen(navController: NavController) {
