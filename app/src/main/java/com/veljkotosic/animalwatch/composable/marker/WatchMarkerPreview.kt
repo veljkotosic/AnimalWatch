@@ -188,7 +188,7 @@ fun WatchMarkerPreview(
                 }
             }
 
-            if (mapUiState.markerTooFar && !mapViewModel.ownsMarker()) {
+            if (mapUiState.markerTooFar && !mapViewModel.ownsMarker() && !watchMarker.hasUpdates) {
                 Row (
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 4.dp)
