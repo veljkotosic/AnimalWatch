@@ -28,6 +28,7 @@ import com.veljkotosic.animalwatch.uistate.map.WatchMarkerFilterUiState
 import com.veljkotosic.animalwatch.uistate.map.WatchMarkerUiState
 import com.veljkotosic.animalwatch.uistate.processing.ProcessingUiState
 import com.veljkotosic.animalwatch.utility.addDays
+import com.veljkotosic.animalwatch.utility.takeDays
 import com.veljkotosic.animalwatch.utility.toGeoLocation
 import com.veljkotosic.animalwatch.utility.toGeoPoint
 import com.veljkotosic.animalwatch.utility.toLatLng
@@ -44,6 +45,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 class MapViewModel (
     private val authRepository: AuthRepository,
@@ -316,7 +318,7 @@ class MapViewModel (
             (filter.owner.isBlank() || marker.ownerUserName.contains(filter.owner, true)) &&
             (filter.tags.isEmpty() || marker.tags.containsAll(filter.tags)) &&
             (marker.createdOn >= filter.createdAfter) &&
-            (marker.createdOn <= filter.createdBefore)
+            (marker.createdOn <= Timestamp(Date(filter.createdBefore.toDate().time + 12 * 60 * 60 * 1000)))
         }
     }
 
