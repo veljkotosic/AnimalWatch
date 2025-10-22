@@ -6,9 +6,11 @@ import com.firebase.geofire.GeoLocation
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.DocumentChange
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.QuerySnapshot
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarker
 import com.veljkotosic.animalwatch.data.marker.entity.WatchMarkerState
@@ -147,24 +149,34 @@ class FirestoreWatchMarkerRepository(
                 .whereEqualTo("state", WatchMarkerState.Active)
                 .whereEqualTo("visibility", WatchMarkerVisibility.Public)
 
-            val listener = query.addSnapshotListener { snapshot, error ->
-                if (error != null) {
+            val listener = query.addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
+                if (snapshot == null || error != null) {
                     Log.w("Firestore", "Listen failed: ", error)
                     return@addSnapshotListener
                 }
 
-                if (snapshot != null) {
-                    for (doc in snapshot.documents) {
-                        val marker = doc.toObject(WatchMarker::class.java) ?: continue
-                        val distance = GeoFireUtils.getDistanceBetween(center, marker.position.toGeoLocation())
-                        if (distance <= radiusMeters) {
-                            foundMarkers[marker.id] = marker
-                        } else {
+                for (change in snapshot.documentChanges) {
+                    val doc = change.document
+                    val marker = doc.toObject(WatchMarker::class.java)
+                    when (change.type) {
+                        DocumentChange.Type.ADDED, DocumentChange.Type.MODIFIED -> {
+                            if (marker.state == WatchMarkerState.Active) {
+                                val distance = GeoFireUtils.getDistanceBetween(center, marker.position.toGeoLocation())
+                                if (distance <= radiusMeters) {
+                                    foundMarkers[marker.id] = marker
+                                } else {
+                                    foundMarkers.remove(marker.id)
+                                }
+                            } else {
+                                foundMarkers.remove(marker.id)
+                            }
+                        }
+                        DocumentChange.Type.REMOVED -> {
                             foundMarkers.remove(marker.id)
                         }
                     }
-                    onChange(foundMarkers.values.toList())
                 }
+                onChange(foundMarkers.values.toList())
             }
             listeners.add(listener)
         }

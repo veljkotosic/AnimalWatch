@@ -422,9 +422,6 @@ class MapViewModel (
             try {
                 _processingUiState.update { it.copy(isLoading = true) }
 
-                _loadedMarkers.update { it - _selectedMarker.value!! }
-                _filteredMarkers.update { it - _selectedMarker.value!! }
-
                 markerRepository.removeMarker(_selectedMarker.value!!)
 
                 deselectMarker()
@@ -473,7 +470,13 @@ class MapViewModel (
 
                 markerRepository.updateMarker(updatedMarkerWithImage, oldMarker)
 
-                _loadedMarkers.update { it - oldMarker + updatedMarkerWithImage }
+                deselectMarker()
+
+                selectMarker(updatedMarkerWithImage)
+
+                _filterUiState.update { it.copy(createdBefore = Timestamp.now()) }
+                applyFilters()
+
                 _processingUiState.update { it.copy(isSuccess = true) }
 
                 closeMarkerUpdater()

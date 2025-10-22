@@ -177,16 +177,14 @@ fun MapScreen(
         ) {
             if (cameraPositionState.position.zoom >= 12f) {
                 filteredMarkers.forEach { marker ->
-                    key(marker.id) {
-                        AnimalWatchMarker (
-                            watchMarker = marker,
-                            onClick = {
-                                mapViewModel.selectMarker(marker)
-                                mapViewModel.moveCameraToMarker(marker, cameraPositionState)
-                                true
-                            }
-                        )
-                    }
+                    AnimalWatchMarker (
+                        watchMarker = marker,
+                        onClick = {
+                            mapViewModel.selectMarker(marker)
+                            mapViewModel.moveCameraToMarker(marker, cameraPositionState)
+                            true
+                        }
+                    )
                 }
             }
         }

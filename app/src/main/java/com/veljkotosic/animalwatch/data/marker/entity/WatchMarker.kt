@@ -29,6 +29,14 @@ data class WatchMarker @OptIn(ExperimentalUuidApi::class) constructor(
     val visibility: WatchMarkerVisibility = WatchMarkerVisibility.Public,
     val state: WatchMarkerState = WatchMarkerState.Active,
     val severity: WatchMarkerSeverity = WatchMarkerSeverity.Undefined
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        return other is WatchMarker && other.id == id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+}
 
 
