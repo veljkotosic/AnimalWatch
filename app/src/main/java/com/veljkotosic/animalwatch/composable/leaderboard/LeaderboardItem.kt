@@ -48,7 +48,7 @@ fun LeaderBoardItem(
         horizontalArrangement = Arrangement.Start
     ) {
         Text(
-            text = "${index}.",
+            text = when(index) { 1 -> "\uD83C\uDFC6" 2 -> "\uD83E\uDD48" 3 -> "\uD83E\uDD49" else -> "${index}."},
             style = MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize),
             color = MaterialTheme.colorScheme.onSurface
         )
