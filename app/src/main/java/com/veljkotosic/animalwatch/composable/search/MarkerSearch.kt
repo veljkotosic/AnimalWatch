@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.veljkotosic.animalwatch.ui.theme.Background
 import com.veljkotosic.animalwatch.ui.theme.Primary
 import com.veljkotosic.animalwatch.viewmodel.map.MapViewModel
 
@@ -39,6 +40,7 @@ fun MarkerSearch(
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
+        containerColor = Background,
         title = {
             Text("Search parameters", color = Primary)
         },
